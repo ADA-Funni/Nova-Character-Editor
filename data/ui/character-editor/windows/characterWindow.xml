@@ -1,0 +1,73 @@
+<window title="Character Data" width="260" maximizable="false" minimizable="false" collapsable="false" closable="false">
+    <vbox width="100%">
+        <dropdown id="characterDropdown" text="Select Character" width="100%" searchable="true"
+            tooltip="Choose a Character.">
+        </dropdown>
+    </vbox>
+
+    <grid width="100%">
+        <label text="Name:" style="padding: 2px;" verticalAlign="center" />
+        <textfield id="charName" placeholder="Character Name" width="100%" verticalAlign="center" tooltip="The Characters Name." />
+
+        <label text="Asset Path:" style="padding: 2px;" verticalAlign="center" />
+        <textfield id="charAssetPath" placeholder="Asset Path" width="100%" verticalAlign="center" tooltip="The Characters Asset Path." />
+
+        <label text="Render Type:" style="padding: 2px;" verticalAlign="center" />
+        <option-stepper width="100%" id="charRenderType" tooltip="Character Render Type.">
+            <data>
+                <item text="Sparrow" data="sparrow" />
+                <item text="Multi-Sparrow" data="multisparrow" />
+                <item text="Texture Atlas" data="textureatlas" />
+                <item text="Packer" data="packer" />
+            </data>
+        </option-stepper>
+
+        <label text="Scale:" style="padding: 2px;" verticalAlign="center" />
+        <number-stepper id="charScale" min="0.1" pos="1" step="0.1" width="100%" verticalAlign="center" tooltip="The Scale of the Character."/>
+
+        <label text="Sing Time:" style="padding: 2px;" verticalAlign="center" />
+        <number-stepper id="charSingTime" min="1" pos="8" step="1" width="100%" verticalAlign="center" tooltip="How long the animation lasts in steps."/>
+
+        <label text="Dance Interval:" style="padding: 2px;" verticalAlign="center" />
+        <number-stepper id="charDanceInterval" min="1" pos="1" step="1" width="100%" verticalAlign="center" tooltip="ADD ONE LATER????"/>
+
+        <label text="Offsets:" style="padding: 2px;" verticalAlign="center" />
+        <hbox width="100%">
+            <number-stepper id="charOffsetsX" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters X Offset."/>
+            <number-stepper id="charOffsetsY" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters Y Offset."/>
+        </hbox>
+
+        <label text="Camera Offsets:" style="padding: 2px;" verticalAlign="center" />
+        <hbox width="100%">
+            <number-stepper id="charCamOffsetsX" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters X Offset."/>
+            <number-stepper id="charCamOffsetsY" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters Y Offset."/>
+        </hbox>
+    </grid>
+
+    <hbox width="100%" style="padding: 10px;">
+        <spacer width="50%"/>
+        <label text="Flip X:" style="padding: 2px;" verticalAlign="center"/>
+        <checkbox id="charFlipX" tooltip="Flip Character X."/>
+        <spacer width="10%"/>
+        <label text="Flip Y:" style="padding: 2px;" verticalAlign="center" />
+        <checkbox id="charFlipY" tooltip="Flip Character Y."/>
+        <spacer width="10%"/>
+        <label text="Pixel:" style="padding: 2px;" verticalAlign="center"  />
+        <checkbox id="charIsPixel" tooltip="Is your Character Pixel?"/>
+    </hbox>
+
+    <vbox width="100%">
+        <label text="Animations:" style="padding: 2px;" verticalAlign="center"/>
+        <listview id="charAnimationList" width="100%" height="180" selectedIndex="0">
+            <data>
+                <item text="Test"/>
+            </data>
+        </listview>
+    </vbox>
+
+    <hbox width="100%">
+        <button id="createAnim" text="New Anim" width="100%"/>
+        <button id="deleteAnim" text="Delete Anim" width="100%"/>
+    </hbox>
+
+</window>

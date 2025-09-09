@@ -55,8 +55,9 @@ class CharacterEditorV3 extends MusicBeatState {
         super.create();
         Cursor.show();
 
-        var newWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/ohYeah"));
+        var newWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/characterWindow"));
         add(newWindow);
+        newWindow.screenCenter();
     }
 
     function update() {
