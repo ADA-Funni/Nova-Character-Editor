@@ -12,9 +12,8 @@ class AnimInjection extends Module
 
     override function onSubStateOpenEnd(event:SubStateScriptEvent) {
         if (Std.isOfType(event.targetState, DebugMenuSubState)) {
-            var debugState:DebugMenuSubState = event.targetState;
-            var animEditor = debugState.items.getItem("ANIMATION EDITOR");
-            animEditor.setItem("CHARACTER EDITOR", ()->FlxG.switchState(ScriptedMusicBeatState.init('CharacterEditorV3')));
+            var state = event.targetState;
+            state.createItem("Nova Character Editor", ()->FlxG.switchState(ScriptedMusicBeatState.init('CharacterEditorV3')));
         }
     }
 }
