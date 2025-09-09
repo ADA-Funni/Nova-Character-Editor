@@ -1,0 +1,34 @@
+<window title="Animation Info" width="260" maximizable="false" minimizable="false" collapsable="false" closable="false">
+    <grid width="100%">
+        <label text="Name:" style="padding: 2px;" verticalAlign="center" />
+        <textfield id="animName" placeholder="Animation Name" width="100%" verticalAlign="center" tooltip="The Animations name." />
+
+        <label text="Prefix:" style="padding: 2px;" verticalAlign="center" />
+        <textfield id="animPrefix" placeholder="Animation Prefix" width="100%" verticalAlign="center" tooltip="The Animations Prefix in XML." />
+        
+        <label text="Asset Path:" style="padding: 2px;" verticalAlign="center" />
+        <textfield id="animPrefix" placeholder="Animation Asset Path" width="100%" verticalAlign="center" tooltip="If your animation is on a different sprite sheet set, \nthe Asset Path for it here." />
+
+        <label text="Indices:" style="padding: 2px;" verticalAlign="center" />
+        <textfield id="animIndices" placeholder="Animations Indices" width="100%" verticalAlign="center" tooltip="Animation Indices." restrictChars="0-9, " />
+
+        <label text="Offsets:" style="padding: 2px;" verticalAlign="center" />
+        <hbox width="100%">
+            <number-stepper id="animOffsetX" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Animations X Offset."/>
+            <number-stepper id="animOffsetY" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Animations Y Offset."/>
+        </hbox>
+        
+    </grid>
+
+    <hbox width="100%" style="padding: 10px;">
+        <spacer width="50%"/>
+        <label text="Flip X:" style="padding: 2px;" verticalAlign="center"/>
+        <checkbox id="animFlipX" tooltip="Flip Character X."/>
+        <spacer width="10%"/>
+        <label text="Pixel:" style="padding: 2px;" verticalAlign="center"  />
+        <checkbox id="animIsPixel" tooltip="Is your Character Pixel?"/>
+        <label text="Looped:" style="padding: 2px;" verticalAlign="center"  />
+        <checkbox id="animIsLooped" tooltip="Is your Animation Looping?"/>
+    </hbox>
+
+</window>
