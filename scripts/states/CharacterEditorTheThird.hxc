@@ -68,6 +68,9 @@ using StringTools;
 
 class CharacterEditorV3 extends MusicBeatState {
 
+    public static var startingChar = { text: "Boyfriend", id: "bf" };
+    public static var skipPreloading = false;
+
     public var editorTitle:String = "Nova Character Editor [REFRESHED]";
     public var editorVersion:String = "2.0.0";
 
@@ -181,7 +184,7 @@ class CharacterEditorV3 extends MusicBeatState {
             selectedCharacter.playAnimation(animationList.selectedItem.text);
         }
 
-        editCharacterWindow.findComponent("characterDropdown").selectedItem = { text: "Boyfriend", id: "bf" };
+        editCharacterWindow.findComponent("characterDropdown").selectedItem = startingChar;
     }
 
     function reloadCharacterList() {
@@ -190,15 +193,27 @@ class CharacterEditorV3 extends MusicBeatState {
         for (char in FileUtil.readDir("assets/data/characters")) {
             blackList.push(char.replace(".json", ""));
         }
-        editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: "gf", id: "gf" });
-        editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: "Boyfriend", id: "bf" });
+
+        editCharacterWindow.findComponent("characterDropdown").dataSource.add(startingChar);
+
+        var presets = [
+            { text: "Boyfriend", id: "bf" },
+            { text: "Girlfriend", id: "gf" },
+            { text: "Daddy Dearest", id: "dad" }
+        ];
+        for (i in presets) {
+            if (i.id != startingChar.id)
+                editCharacterWindow.findComponent("characterDropdown").dataSource.add(i);
+        }
         for (i in CharacterDataParser.characterCache.keys()) {
             if (!blackList.contains(i)) {
                 editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: CharacterDataParser.characterCache.get(i).name, id: i });
-                CharacterDataParser.fetchCharacter(i);
+                if (!skipPreloading)
+                    CharacterDataParser.fetchCharacter(i);
             }
         }
 
+        skipPreloading = false;
         Serialize.process(CharacterDataParser.fetchCharacter("bf")._data);
     }
 
