@@ -17,8 +17,8 @@
         <menu-item id="saveStageForCNE" text="Save For Codename Engine" shortcutText="(Coming Soon)"
             disabled="true" />
         <menu-separator />
-        <menu-item id="deleteStage" text="Delete Stage" style="color: indianred"/>
-        <menu-separator />
+        <!-- <menu-item id="deleteStage" text="Delete Stage" style="color: indianred"/>
+        <menu-separator /> -->
         <menu-item id="exitToMenu" text="Exit To Menu" shortcutText="Ctrl + Q" />
     </menu>
 
@@ -33,14 +33,8 @@
   </menu> -->
 
     <menu text="View" width="300">
-        <menu-item id="resetCamera" text="Set Zoom to Stage Zoom" shortcutText="Ctrl + Shift + R" />
-        <menu-separator />
-        <menu-item id="viewFromPlayer" text="View Stage From Player" shortcutText="(Coming Soon)"
-            disabled="true" />
-        <menu-item id="viewFromOpponent" text="View Stage From Opponent"
-            shortcutText="(Coming Soon)" disabled="true" />
-        <menu-item id="viewFromSpectator" text="View Stage From Spectator"
-            shortcutText="(Coming Soon)" disabled="true" />
+        <menu-item id="resetCamera" text="Reset Camera" shortcutText="Ctrl + Shift + R" />
+        <menu-item id="uiSwap" text="Swap UI Side" />
     </menu>
 
     <menu text="Audio" width="300">

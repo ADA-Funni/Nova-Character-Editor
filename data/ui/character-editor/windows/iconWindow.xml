@@ -1,7 +1,7 @@
-<window title="Icon Info" width="260" maximizable="false" minimizable="false" collapsable="false" closable="false">
+<window title="Icon Info" width="260" height="40%" maximizable="false" minimizable="false" collapsable="false" closable="false">
     <grid width="100%">
         <label text="Asset Path:" style="padding: 2px;" verticalAlign="center" />
-        <textfield id="iconAssetPath" placeholder="Animation Name" width="100%" verticalAlign="center" tooltip="The Icons image name." />
+        <textfield id="iconAssetPath" placeholder="Icon Asset ID" width="100%" verticalAlign="center" tooltip="The Icons image name." />
 
         <label text="Scale:" style="padding: 2px;" verticalAlign="center" />
         <number-stepper id="iconScale" min="0.1" pos="1" step="0.1" width="100%" verticalAlign="center" tooltip="The Scale of the Icon."/>

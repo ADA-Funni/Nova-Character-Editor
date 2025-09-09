@@ -19,16 +19,19 @@
         </hbox>
         
     </grid>
-
+    
     <hbox width="100%" style="padding: 10px;">
-        <spacer width="50%"/>
+        <spacer width="40%"/>
         <label text="Flip X:" style="padding: 2px;" verticalAlign="center"/>
         <checkbox id="animFlipX" tooltip="Flip Character X."/>
         <spacer width="10%"/>
         <label text="Pixel:" style="padding: 2px;" verticalAlign="center"  />
         <checkbox id="animIsPixel" tooltip="Is your Character Pixel?"/>
-        <label text="Looped:" style="padding: 2px;" verticalAlign="center"  />
-        <checkbox id="animIsLooped" tooltip="Is your Animation Looping?"/>
     </hbox>
-
+    <hbox width="100%" style="padding-bottom: 5px;">
+        <spacer width="75"/>
+        <label text="Looped:" style="padding: 2px;" verticalAlign="center"  />
+        <checkbox id="animIsLooped" tooltip="Is your Animation Looping?" disabled="false"/>
+    </hbox>
+    
 </window>

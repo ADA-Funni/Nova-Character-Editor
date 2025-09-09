@@ -1,0 +1,42 @@
+import Std;
+import haxe.Json;
+import StringTools;
+import funkin.modding.module.Module;
+
+class Serialize extends Module {
+    public static function process(characterData) {
+        var versionInt = Std.parseInt(StringTools.replace(characterData.version, ".", ""));
+        versionInt++;
+        var finalData = {
+            version: (versionInt+"").split("").join("."),
+            name: characterData?.name,
+            renderType: characterData?.renderType ?? "sparrow",
+            assetPath: characterData?.assetPath ?? "",
+            scale: characterData?.scale ?? 1,
+            healthIcon: characterData?.healthIcon ?? {
+                id: null
+            },
+            offsets: characterData?.offsets ?? [0, 0],
+            cameraOffsets: characterData?.cameraOffsets ?? [0, 0],
+            isPixel: characterData?.isPixel ?? false,
+            danceEvery: characterData?.danceEvery ?? 1,
+            singTime: characterData?.singTime ?? 8,
+            animations: [],
+            flipX: characterData?.flipX ?? false
+        }
+        for (i in characterData.animations) {
+            finalData.animations.push({
+                name: i.name,
+                prefix: i.prefix,
+                assetPath: i?.assetPath ?? "",
+                offsets: i?.offsets ?? [0, 0],
+                looped: i?.looped ?? false,
+                flipX: i?.flipX ?? false, 
+                flipY: i?.flipY ?? false,
+                frameRate: i?.frameRate ?? 24,
+                frameIndices: i?.frameIndices ?? []
+            });
+        }
+        return Json.stringify(finalData, null, "\t");
+    }
+}

@@ -1,5 +1,7 @@
 import funkin.ui.MusicBeatState;
 
+import funkin.audio.FunkinSound;
+
 import haxe.ui.RuntimeComponentBuilder;
 
 import haxe.ui.core.Screen;
@@ -45,7 +47,47 @@ import haxe.ui.macros.ComponentMacros;
 
 import funkin.input.Cursor;
 
+import funkin.play.character.CharacterDataParser;
+
+import funkin.graphics.FunkinSprite;
+
+// import funkin.play.character.CharacterData;
+
+import json2object.JsonWriter;
+
+import funkin.util.FileUtil;
+import funkin.util.MathUtil;
+
+import flixel.FlxG;
+import flixel.FlxCamera;
+
+import Reflect;
+import StringTools;
+
+using StringTools;
+
 class CharacterEditorV3 extends MusicBeatState {
+
+    public var editorTitle:String = "Nova Character Editor [REFRESHED]";
+    public var editorVersion:String = "2.0.0";
+
+    public var menuBar:MenuBar;
+    public var bottomBar:MenuBar;
+
+    public var iconWindow:Window;
+    public var animationWindow:Window;
+    public var editCharacterWindow:Window;
+
+    public var camHUD:FlxCamera;
+	public var camGame:FlxCamera;
+    public var camBackground:FlxCamera;
+
+    public var windowToggle:Bool = false;
+
+    public var selectedCharacter;
+
+    public var keybinds:Array = [];
+    public var cancelInput:Bool = false;
 
     function new() {
         super('CharacterEditorV3');
@@ -55,14 +97,174 @@ class CharacterEditorV3 extends MusicBeatState {
         super.create();
         Cursor.show();
 
-        var newWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/characterWindow"));
-        add(newWindow);
-        newWindow.screenCenter();
+        camBackground = new FlxCamera();
+        camBackground.bgColor = 0xFF000000;
+        FlxG.cameras.add(camBackground, false);
+
+        camGame = new FlxCamera();
+        camGame.bgColor = 0x00000000;
+        FlxG.cameras.add(camGame, false);
+
+        camHUD = new FlxCamera();
+        camHUD.bgColor = 0x00000000;
+        FlxG.cameras.add(camHUD, true);
+
+        var bg = new FunkinSprite(0, 0).loadGraphic(Paths.image('menuDesat'));
+		bg.scrollFactor.set(0, 0);
+		bg.setGraphicSize(FlxG.width, FlxG.height);
+		bg.updateHitbox();
+		bg.screenCenter();
+		bg.alpha = 0.5;
+		bg.cameras = [camBackground];
+		add(bg);
+
+        menuBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/menubar"));
+        menuBar.findComponent("menuBarTitle").text = editorTitle + " v" + editorVersion;
+        add(menuBar);
+
+        menuBar.findComponent("uiSwap").onClick = ()->windowToggle = !windowToggle;
+
+        bottomBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/bottombar"));
+        add(bottomBar);
+        bottomBar.y = FlxG.height - bottomBar.height;
+
+        var style = RuntimeComponentBuilder.build(Paths.ui("character-editor/styles/main"));
+        add(style);
+
+        iconWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/iconWindow"));
+        add(iconWindow);
+        iconWindow.screenCenter();
+
+        animationWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/animationWindow"));
+        add(animationWindow);
+        animationWindow.screenCenter();
+
+        editCharacterWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/characterWindow"));
+        add(editCharacterWindow);
+        editCharacterWindow.screenCenter();
+
+        reloadCharacterList();
+
+        editCharacterWindow.findComponent("characterDropdown").onChange = ()->{
+            if (members.contains(selectedCharacter))
+                remove(selectedCharacter);
+
+            selectedCharacter = CharacterDataParser.fetchCharacter(editCharacterWindow.findComponent("characterDropdown").selectedItem.id);
+            selectedCharacter.cameras = [camGame];
+            selectedCharacter.screenCenter();
+            selectedCharacter.flipX = false;
+            selectedCharacter.debug = true;
+            add(selectedCharacter);
+
+            editCharacterWindow.findComponent("charName").text = selectedCharacter._data.name;
+            editCharacterWindow.findComponent("charAssetPath").text = selectedCharacter._data.assetPath.replace("characters/", "");
+            editCharacterWindow.findComponent("charScale").pos = selectedCharacter._data.scale;
+            editCharacterWindow.findComponent("charSingTime").pos = selectedCharacter._data.singTime;
+            editCharacterWindow.findComponent("charDanceInterval").pos = selectedCharacter._data.danceEvery;
+            editCharacterWindow.findComponent("charOffsetsX").pos = (selectedCharacter._data?.offsets ?? [0, 0])[0];
+            editCharacterWindow.findComponent("charOffsetsY").pos = (selectedCharacter._data?.offsets ?? [0, 0])[1];
+            reloadAnimationList();
+        }
+
+        newKeybind(["W"], (elapsed) -> !cancelInput ? camGame.scroll.y -= ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
+        newKeybind(["A"], (elapsed) -> !cancelInput ? camGame.scroll.x -= ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
+        newKeybind(["S"], (elapsed) -> !cancelInput ? camGame.scroll.y += ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
+        newKeybind(["D"], (elapsed) -> !cancelInput ? camGame.scroll.x += ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
+
+        newKeybind(["Q"], (elapsed) -> (!cancelInput && !FlxG.keys.pressed.CONTROL) ? camGame.zoom -= (0.015 * elapsed) * 100 : 0, "pressed");
+        newKeybind(["E"], (elapsed) -> (!cancelInput && !FlxG.keys.pressed.CONTROL) ? camGame.zoom += (0.015 * elapsed) * 100 : 0, "pressed");
+
+        newKeybind(["CONTROL", "E"], ()->camHUD.visible = !camHUD.visible);
+
+        var animationList = editCharacterWindow.findComponent("charAnimationList");
+        animationList.onChange = ()->{
+            selectedCharacter.playAnimation(animationList.selectedItem.text);
+        }
+
+        editCharacterWindow.findComponent("characterDropdown").selectedItem = { text: "Boyfriend", id: "bf" };
     }
 
-    function update() {
-        super.update();        
+    function reloadCharacterList() {
+        editCharacterWindow.findComponent("characterDropdown").dataSource.clear();
+        var blackList = [];
+        for (char in FileUtil.readDir("assets/data/characters")) {
+            blackList.push(char.replace(".json", ""));
+        }
+        editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: "gf", id: "gf" });
+        editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: "Boyfriend", id: "bf" });
+        for (i in CharacterDataParser.characterCache.keys()) {
+            if (!blackList.contains(i)) {
+                editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: CharacterDataParser.characterCache.get(i).name, id: i });
+                CharacterDataParser.fetchCharacter(i);
+            }
+        }
+
+        Serialize.process(CharacterDataParser.fetchCharacter("bf")._data);
+    }
+
+    function reloadAnimationList() {
+        var list = editCharacterWindow.findComponent("charAnimationList");
+        list.dataSource.clear();
+        for (i in selectedCharacter._data.animations) {
+            list.dataSource.add({ text: i.name });
+        }
+        list.selectedItems = [];
+        list.selectedItem = null;
+    }
+
+    function update(elapsed) {
+        super.update(elapsed);        
         get_conductorInUse().update();
+
+        if (FlxG.mouse.justPressed) {
+            FlxG.sound.play(Paths.sound("click"));
+        }
+
+        if (editCharacterWindow != null) {
+            var prev = editCharacterWindow.x;
+            editCharacterWindow.x = MathUtil.coolLerp(editCharacterWindow.x, windowToggle ? 20 : FlxG.width - editCharacterWindow.width - 20, 0.1);
+            iconWindow.x = MathUtil.coolLerp(iconWindow.x, windowToggle ? 20 + editCharacterWindow.width : FlxG.width - editCharacterWindow.width - 20 - iconWindow.width, 0.1);
+            animationWindow.x = MathUtil.coolLerp(animationWindow.x, windowToggle ? 20 + editCharacterWindow.width : FlxG.width - editCharacterWindow.width - 20 - animationWindow.width, 0.1);
+            animationWindow.y = editCharacterWindow.y;
+            iconWindow.y = animationWindow.y + animationWindow.height;
+            prev -= editCharacterWindow.x;
+            camGame.x += prev*0.55;
+        }
+
+        if (FlxG.keys.justPressed.SPACE)
+            selectedCharacter.playAnimation(selectedCharacter.animation.name, true);
+
+        /* if (FlxG.keys.justPressed.D && FlxG.keys.pressed.CONTROL) windowToggle = false;
+        if (FlxG.keys.justPressed.A && FlxG.keys.pressed.CONTROL) windowToggle = true; */
+
+        for (keybind in keybinds) {
+            var pressed = true;
+            var index = 0;
+            //trace(keybind);
+            for (key in keybind.keys) {
+                if (index == keybind.keys.length - 1 && keybind.type != "pressed") {
+                    if (!Reflect.getProperty(FlxG.keys.justPressed, key)) {
+                        pressed = false;
+                    }
+                } else {
+                    if (!Reflect.getProperty(FlxG.keys.pressed, key)) {
+                        pressed = false;
+                    }
+                }
+                index++;
+            }
+            if (pressed) {
+                keybind.action(elapsed);
+            }
+        }
+    }
+
+    function newKeybind(keys:Array<String>, action, ?type) {
+        keybinds.push({
+            keys: keys,
+            type: type ?? "justPressed",
+            action: action
+        });
     }
 
     override function beatHit() {

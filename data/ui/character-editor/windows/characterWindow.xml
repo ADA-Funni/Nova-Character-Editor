@@ -1,4 +1,4 @@
-<window title="Character Data" width="260" maximizable="false" minimizable="false" collapsable="false" closable="false">
+<window title="Character Data" width="280" maximizable="false" minimizable="false" collapsable="false" closable="false">
     <vbox width="100%">
         <dropdown id="characterDropdown" text="Select Character" width="100%" searchable="true"
             tooltip="Choose a Character.">
