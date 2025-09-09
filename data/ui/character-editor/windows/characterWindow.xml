@@ -49,9 +49,6 @@
         <label text="Flip X:" style="padding: 2px;" verticalAlign="center"/>
         <checkbox id="charFlipX" tooltip="Flip Character X."/>
         <spacer width="10%"/>
-        <label text="Flip Y:" style="padding: 2px;" verticalAlign="center" />
-        <checkbox id="charFlipY" tooltip="Flip Character Y."/>
-        <spacer width="10%"/>
         <label text="Pixel:" style="padding: 2px;" verticalAlign="center"  />
         <checkbox id="charIsPixel" tooltip="Is your Character Pixel?"/>
     </hbox>
