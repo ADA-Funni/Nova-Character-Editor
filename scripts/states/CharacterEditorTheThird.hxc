@@ -3,6 +3,10 @@ import funkin.ui.MusicBeatState;
 import funkin.audio.FunkinSound;
 
 import haxe.ui.RuntimeComponentBuilder;
+ 
+import funkin.modding.PolymodHandler;
+
+import funkin.ui.mainmenu.MainMenuState;
 
 import haxe.ui.core.Screen;
 import haxe.ui.core.Component;
@@ -126,6 +130,14 @@ class CharacterEditorV3 extends MusicBeatState {
         add(menuBar);
 
         menuBar.findComponent("uiSwap").onClick = ()->windowToggle = !windowToggle;
+        
+        var exitToMenuCallback = ()->{
+            FlxG.switchState(new MainMenuState());
+            PolymodHandler.forceReloadAssets();
+        }
+
+        menuBar.findComponent("exitToMenu").onClick = exitToMenuCallback;
+        newKeybind(["CONTROL", "Q"], exitToMenuCallback);
 
         bottomBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/bottombar"));
         add(bottomBar);
