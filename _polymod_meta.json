@@ -1,6 +1,6 @@
 {
   "music": "freakyMenu",
-  "title": "Nova Character Editor REFRESHED",
+  "title": "Nova Character Editor",
   "description": "An actually good character editor.",
   "contributors": [
 	  {
@@ -19,6 +19,6 @@
     }
   ],
   "api_version": "0.6.4",
-  "mod_version": "0.1.2",
+  "mod_version": "3.0.0",
   "license": "Apache 2.0"
 }

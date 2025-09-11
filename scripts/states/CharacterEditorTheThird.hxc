@@ -13,6 +13,7 @@ import haxe.ui.core.Component;
 import haxe.ui.core.TextDisplay;
 
 import haxe.ui.components.Label;
+import haxe.ui.components.Image;
 import haxe.ui.components.Button;
 import haxe.ui.components.TabBar;
 import haxe.ui.components.Column;
@@ -45,6 +46,8 @@ import haxe.ui.containers.dialogs.Dialog;
 import haxe.ui.containers.windows.Window;
 import haxe.ui.containers.windows.WindowManager;
 
+import flixel.util.FlxColor;
+
 import haxe.ui.data.ArrayDataSource;
 
 import haxe.ui.macros.ComponentMacros;
@@ -55,6 +58,7 @@ import funkin.play.character.CharacterDataParser;
 
 import funkin.graphics.FunkinSprite;
 
+import funkin.play.components.HealthIcon;
 // import funkin.play.character.CharacterData;
 
 import json2object.JsonWriter;
@@ -73,17 +77,20 @@ using StringTools;
 class CharacterEditorV3 extends MusicBeatState {
 
     public static var startingChar = { text: "Boyfriend", id: "bf", protected: false };
-    public static var skipPreloading = false;
+    public static var skipPreloading:Bool = false;
 
     public var customCharacterRegistry = [
         "init" => "lol"
     ];
 
-    public var editorTitle:String = "Nova Character Editor [REFRESHED]";
-    public var editorVersion:String = "2.0.0";
+    public var editorTitle:String = "Nova Character Editor";
+    public var editorVersion:String = "???";
 
     public var menuBar:MenuBar;
     public var bottomBar:MenuBar;
+
+    public var iconPreview:HealthIcon;
+    public var iconPreviewLosing:HealthIcon;
 
     public var iconWindow:Window;
     public var animationWindow:Window;
@@ -100,6 +107,8 @@ class CharacterEditorV3 extends MusicBeatState {
     public var keybinds:Array = [];
     public var cancelInput:Bool = false;
 
+    public var iconIDOverlay:FunkinSprite;
+
     function new() {
         super('CharacterEditorV3');
     }
@@ -107,6 +116,13 @@ class CharacterEditorV3 extends MusicBeatState {
     function create() {
         super.create();
         Cursor.show();
+
+        for (i in PolymodHandler.getAllMods()) {
+            if (i.title == editorTitle) {
+                editorFolder = i.id;
+                editorVersion = i.modVersion.version.join(".") + "-beta";
+            } 
+        }
 
         camBackground = new FlxCamera();
         camBackground.bgColor = 0xFF000000;
@@ -153,6 +169,49 @@ class CharacterEditorV3 extends MusicBeatState {
         iconWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/iconWindow"));
         add(iconWindow);
         iconWindow.screenCenter();
+        
+        iconPreview = new HealthIcon('bf');
+        iconWindow.add(iconPreview);
+        iconPreviewLosing = new HealthIcon('bf');
+        iconWindow.add(iconPreviewLosing);
+
+        iconWindow.findComponent("iconFlipX").onChange = ()->{
+            selectedCharacter._data?.healthIcon?.flipX = iconWindow.findComponent("iconFlipX").selected;
+            reloadIcons();
+        }
+
+        iconWindow.findComponent("iconIsPixel").onChange = ()->{
+            selectedCharacter._data?.healthIcon?.isPixel = iconWindow.findComponent("iconIsPixel").selected;
+            reloadIcons();
+        }
+
+        iconWindow.findComponent("iconScale").onChange = ()->{
+            selectedCharacter._data?.healthIcon?.scale = iconWindow.findComponent("iconScale").pos;
+            reloadIcons();
+        }
+
+        iconWindow.findComponent("iconOffsetX").onChange = ()->{
+            selectedCharacter._data?.healthIcon?.offsets[0] = iconWindow.findComponent("iconOffsetX").pos;
+            reloadIcons();
+        }
+
+        iconWindow.findComponent("iconOffsetY").onChange = ()->{
+            selectedCharacter._data.healthIcon?.offsets[1] = iconWindow.findComponent("iconOffsetY").pos;
+            reloadIcons();
+        }
+
+        iconWindow.findComponent("iconAssetPath").onChange = ()->{
+            var targetID = iconWindow.findComponent("iconAssetPath").text;
+            targetID = checkImageExists("icons/icon-" + targetID) ? targetID : "face";
+            iconIDOverlay.visible = targetID == "face";
+            selectedCharacter._data?.healthIcon?.id = targetID;
+            reloadIcons();
+        }
+
+        iconIDOverlay = new FunkinSprite(105, 53).makeGraphic(iconWindow.findComponent("iconAssetPath").width - 2, iconWindow.findComponent("iconAssetPath").height - 2, FlxColor.RED);
+        iconIDOverlay.blend = 0;
+        iconIDOverlay.alpha = 0.5;
+        iconWindow.add(iconIDOverlay);
 
         animationWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/animationWindow"));
         add(animationWindow);
@@ -194,6 +253,13 @@ class CharacterEditorV3 extends MusicBeatState {
             editCharacterWindow.findComponent("charCamOffsetsY").pos = (selectedCharacter._data?.cameraOffsets ?? [0, 0])[1];
             editCharacterWindow.findComponent("charFlipX").selected = selectedCharacter._data?.flipX ?? false;
             editCharacterWindow.findComponent("charIsPixel").selected = selectedCharacter._data?.isPixel ?? false;
+
+            iconWindow.findComponent("iconAssetPath").text = selectedCharacter._data?.healthIcon?.id ?? selectedCharacter.id;
+            iconWindow.findComponent("iconFlipX").selected = selectedCharacter._data?.healthIcon?.flipX ?? false;
+            iconWindow.findComponent("iconIsPixel").selected = selectedCharacter._data?.healthIcon?.isPixel ?? false;
+            iconWindow.findComponent("iconScale").pos = selectedCharacter._data?.healthIcon?.scale ?? 1;
+            iconWindow.findComponent("iconOffsetX").pos = selectedCharacter._data?.healthIcon?.offsets[0] ?? 0;
+            iconWindow.findComponent("iconOffsetY").pos = selectedCharacter._data?.healthIcon?.offsets[1] ?? 0;
             reloadAnimationList();
         }
 
@@ -231,7 +297,8 @@ class CharacterEditorV3 extends MusicBeatState {
         var presets = [
             { text: "Boyfriend", id: "bf", protected: true },
             { text: "Girlfriend", id: "gf", protected: true },
-            { text: "Daddy Dearest", id: "dad", protected: true }
+            { text: "Daddy Dearest", id: "dad", protected: true },
+            { text: "Senpai", id: "senpai", protected: true }
         ];
         for (i in presets) {
             if (i.id != startingChar.id) {
@@ -249,6 +316,13 @@ class CharacterEditorV3 extends MusicBeatState {
 
         skipPreloading = false;
         Serialize.process(CharacterDataParser.fetchCharacter("bf")._data);
+    }
+ 
+    function reloadIcons() {
+        iconPreview.configure(selectedCharacter._data?.healthIcon);
+        iconPreview.playAnimation("idle", true);
+        iconPreviewLosing.configure(selectedCharacter._data?.healthIcon);
+        iconPreviewLosing.playAnimation("losing", true);
     }
 
     function reloadAnimationList() {
@@ -306,6 +380,20 @@ class CharacterEditorV3 extends MusicBeatState {
                 keybind.action(elapsed);
             }
         }
+
+        iconPreview.scale.set(0.7 * selectedCharacter._data?.healthIcon?.scale, 0.7 * selectedCharacter._data?.healthIcon?.scale);
+        /* iconPreview.scale.x *= selectedCharacter._data?.healthIcon?.isPixel ? 5 : 1;
+        iconPreview.scale.y *= selectedCharacter._data?.healthIcon?.isPixel ? 5 : 1; */
+        iconPreview.updateHitbox();
+        iconPreview.x = iconWindow.x + (iconWindow.width/2) - (iconPreview.width/2) - 50;
+        iconPreview.y = iconWindow.y + (iconWindow.height/2) - (iconPreview.height/2) + 80;
+
+        iconPreviewLosing.scale.set(0.7 * selectedCharacter._data?.healthIcon?.scale, 0.7 * selectedCharacter._data?.healthIcon?.scale);
+        /* iconPreviewLosing.scale.x *= selectedCharacter._data?.healthIcon?.isPixel ? 5 : 1;
+        iconPreviewLosing.scale.y *= selectedCharacter._data?.healthIcon?.isPixel ? 5 : 1; */
+        iconPreviewLosing.updateHitbox();
+        iconPreviewLosing.x = iconWindow.x + (iconWindow.width/2) - (iconPreviewLosing.width/2) + 50;
+        iconPreviewLosing.y = iconWindow.y + (iconWindow.height/2) - (iconPreviewLosing.height/2) + 80;
     }
 
     function newKeybind(keys:Array<String>, action, ?type) {
@@ -330,4 +418,24 @@ class CharacterEditorV3 extends MusicBeatState {
         Cursor.hide();
     }
 
+    function checkImageExists(id:String) {
+        var fileExists = false;
+        var foldersToCheck = [
+            "assets/"
+        ];
+
+        for (mod in PolymodHandler.getAllMods()) {
+            foldersToCheck.push("mods/" + mod.id + "/");
+        }
+
+        for (i in foldersToCheck) {
+            if (FileUtil.fileExists(i + "images/" + id + ".png") || FileUtil.directoryExists(i + "images/" + id))
+                fileExists = true;
+            
+            if (FileUtil.fileExists(i + "shared/images/" + id + ".png") || FileUtil.directoryExists(i + "images/" + id))
+                fileExists = true;
+        }
+
+        return fileExists;
+    }
 }
