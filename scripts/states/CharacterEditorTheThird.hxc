@@ -299,6 +299,12 @@ class CharacterEditorV3 extends MusicBeatState {
                 cancelInput = false;
                 windowManager.closeWindow(userGuideWindow);
             }
+
+            for (i in ["joinNovaButton", "joinNetworkButton"]) {
+                userGuideWindow.findComponent(i).onClick = ()->{
+                    FlxG.openURL(userGuideWindow.findComponent(i).tooltip);
+                }
+            }
         };
 
         newKeybind(["F1"], openUderGuide, "justPressed");
@@ -537,11 +543,11 @@ class CharacterEditorV3 extends MusicBeatState {
             selectedCharacter = CharacterDataParser.fetchCharacter("bf");
             selectedCharacter._data = customCharacterRegistry.get(editCharacterWindow.findComponent("characterDropdown").selectedItem.id);
             selectedCharacter.characterId = editCharacterWindow.findComponent("characterDropdown").selectedItem.id;
+            selectedCharacter.debug = true;
             selectedCharacter.onCreate();
             selectedCharacter.cameras = [camGame];
             selectedCharacter.screenCenter();
             selectedCharacter.flipX = false;
-            selectedCharacter.debug = true;
             
             onionSkin = CharacterDataParser.fetchCharacter("bf");
             onionSkin._data = selectedCharacter._data;
