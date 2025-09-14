@@ -7,7 +7,6 @@ import funkin.util.FileUtil;
 import funkin.util.FlxColorUtil;
 import funkin.modding.module.Module;
 import funkin.modding.PolymodHandler;
-
 class NovaConverters extends Module {
     var currentFolder = "??";
 
@@ -24,6 +23,7 @@ class NovaConverters extends Module {
     }
 
     public static function capitalize(str:String) {
+        str = StringTools.replace(str, "-", " ");
         var finalString = str.split("");
         finalString[0] = finalString[0].toUpperCase();
         return finalString.join("");
@@ -102,7 +102,8 @@ class NovaConverters extends Module {
         return baseTemplate;
     }
 
-    public static function fromPsych(obj:Dynamic) {
+    public static function fromPsych(fileContents:String, fileName:String) {
+        var obj = Json.parse(fileContents);
         var baseTemplate = getBaseTemplate();
         baseTemplate.animations = [];
 
@@ -111,7 +112,7 @@ class NovaConverters extends Module {
         baseTemplate.offsets = obj.position;
         baseTemplate.scale = obj.scale;
         baseTemplate.healthIcon = {
-            id: obj.healthIcon
+            id: obj?.healthicon ?? fileName
         }
         baseTemplate.flipX = obj.flip_x;
 
@@ -131,7 +132,7 @@ class NovaConverters extends Module {
             baseTemplate.animations.push(daAnim);
         }
 
-        baseTemplate.name = "Your Name Here";
+        baseTemplate.name = capitalize(fileName);
         //trace(Json.stringify(baseTemplate, null, "\t"));
 
         return baseTemplate;
