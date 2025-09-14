@@ -287,6 +287,23 @@ class CharacterEditorV3 extends MusicBeatState {
         menuBar.findComponent("newCharacter").onClick = newCharacterCallback;
         newKeybind(["CONTROL", "N"], newCharacterCallback);
 
+        // fuck the character editor <3
+        var openUderGuide = ()->{
+            if (cancelInput) return;
+            cancelInput = true;
+            var userGuideWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/userGuideWindow"));
+            add(userGuideWindow);
+            userGuideWindow.windowManager = windowManager;
+            userGuideWindow.screenCenter();
+            userGuideWindow.findComponent("closeButton").onClick = ()->{
+                cancelInput = false;
+                windowManager.closeWindow(userGuideWindow);
+            }
+        };
+
+        newKeybind(["F1"], openUderGuide, "justPressed");
+        menuBar.findComponent("userGuide").onClick = openUderGuide;
+
         bottomBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/bottombar"));
         add(bottomBar);
         bottomBar.y = FlxG.height - bottomBar.height + 2;

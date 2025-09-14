@@ -33,7 +33,6 @@
   </menu> -->
 
     <menu text="View" width="300">
-        <menu-item id="resetCamera" text="Reset Camera" shortcutText="Ctrl + Shift + R" />
         <menu-item id="uiSwap" text="Swap UI Side" />
     </menu>
 
