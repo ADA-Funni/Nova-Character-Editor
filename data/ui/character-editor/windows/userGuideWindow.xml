@@ -95,6 +95,7 @@
                 <label text="—— To Be Added ——" />
                 <spacer />
                 <label text="• Character Converters." />
+                <label text="• Song Choice Saving." />
                 <label text="• In-Game Updater (Again)." />
             </vbox>
         </box>
