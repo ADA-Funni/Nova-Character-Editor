@@ -9,7 +9,7 @@ class Serialize extends Module {
         versionInt++;
         var finalData = {
             version: (versionInt+"").split("").join("."),
-            name: characterData?.name,
+            name: characterData?.name ?? "",
             startingAnimation: "idle",
             renderType: characterData?.renderType ?? "sparrow",
             assetPath: characterData?.assetPath ?? "",

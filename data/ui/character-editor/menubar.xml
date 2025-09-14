@@ -7,15 +7,12 @@
         }
     </style>
 
+    
     <menu text="File" width="300">
         <menu-item id="newCharacter" text="New" shortcutText="Ctrl + N"/>
         <menu-separator />
         <menu-item id="saveCharacter" text="Save" shortcutText="Ctrl + S" />
         <menu-item id="saveCharacterAs" text="Save As" shortcutText="Ctrl + Shift + S" disabled="true"/>
-        <menu-item id="saveCharacterForPsych" text="Save For Psych" shortcutText="(Coming Soon)"
-            disabled="true" />
-        <menu-item id="saveCharacterForCNE" text="Save For Codename Engine" shortcutText="(Coming Soon)"
-            disabled="true" />
         <menu-separator />
         <!-- <menu-item id="deleteCharacter" text="Delete Character" style="color: indianred"/>
         <menu-separator /> -->
@@ -51,6 +48,14 @@
             <slider id="menubarItemVolumeInstrumental" width="100%" majorTicks="10" minorTicks="5"
                 pos="100" />
         </vbox>
+    </menu>
+
+    <menu text="Converters" width="300">
+        <menu-item text="Codename Engine to V-Slice" shortcutText="(Coming Soon)" disabled="false" id="fromCNE"/>
+        <menu-item text="Psych Engine to V-Slice" shortcutText="(Coming Soon)" disabled="true"/>
+        <menu-separator disabled="true"/>
+        <menu-item text="V-Slice to Codename Engine" shortcutText="(Coming Soon)" disabled="true"/>
+        <menu-item text="V-Slice to Psych Engine" shortcutText="(Coming Soon)" disabled="true"/>
     </menu>
 
     <menu text="Help" width="300">

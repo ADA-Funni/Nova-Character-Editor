@@ -15,28 +15,32 @@ class NovaConverters extends Module {
         super('NovaConverters');
     }
 
-    function parseBool(string:String) {
+    public static function parseBool(string:String) {
         return string == "true";
     }
 
-    function getBaseTemplate() {
-        return Json.parse(FileUtil.readStringFromPath(currentFolder + "/data/config/templateCharacter.json"));
+    public static function getBaseTemplate() {
+        return Json.parse(Serialize.process({}));
     }
 
-    function charFromCNE(obj:Xml) {
+    public static function capitalize(str:String) {
+        var finalString = str.split("");
+        finalString[0] = finalString[0].toUpperCase();
+        return finalString.join("");
+    }
+
+    public static function fromCNE(fileContents:String, fileName:String) {
+        var obj:Xml = Xml.parse(fileContents);
         var baseTemplate = getBaseTemplate();
         baseTemplate.animations = [];
         var index = 0;
-        for (i in obj.firstElement().attributes()) {
-            trace(i);
-        }
         
 
         var charData = obj.firstElement();
         baseTemplate.assetPath = "characters/" + charData.get("sprite");
         baseTemplate.singTime = charData.exists("holdTime") ? Std.parseInt(charData.get("holdTime")) : 4;
         baseTemplate.offsets = [charData.exists("x") ? Std.parseInt(charData.get("x")) : 0, charData.exists("y") ? Std.parseInt(charData.get("y")) : 0];
-        baseTemplate.scale = charData.exists("scale") ? Std.parseInt(charData.get("scale")) : 1;
+        baseTemplate.scale = charData.exists("scale") ? Std.parseFloat(charData.get("scale")) : 1;
         baseTemplate.healthIcon = {
             id: charData.exists("icon") ? charData.get("icon") : ""
         }
@@ -45,7 +49,7 @@ class NovaConverters extends Module {
         for (i in charData.iterator()) {
             if (i.nodeType+"" == "0") {
                 if (i.exists("anim")) {
-                    trace(i.nodeType + ": " + i);
+                    //trace(i.nodeType + ": " + i);
                     var daAnim = {
                         flipX: i.exists("flipX") ? parseBool(i.get("flipX")) : false,
                         flipY: i.exists("flipY") ? parseBool(i.get("flipY")) : false,
@@ -93,11 +97,12 @@ class NovaConverters extends Module {
             }
             anim.indices.remove("");
         }
-        baseTemplate.name = "Your Name Here";
+        baseTemplate.name = capitalize(fileName);
         
         return baseTemplate;
     }
-    function charFromPsych(obj:Dynamic) {
+
+    public static function fromPsych(obj:Dynamic) {
         var baseTemplate = getBaseTemplate();
         baseTemplate.animations = [];
 

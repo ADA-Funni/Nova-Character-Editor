@@ -69,6 +69,8 @@ import funkin.play.components.HealthIcon;
 
 import json2object.JsonWriter;
 
+import haxe.ui.containers.dialogs.OpenFileDialog;
+
 import funkin.util.FileUtil;
 import funkin.util.MathUtil;
 
@@ -80,12 +82,22 @@ import haxe.Json;
 import Reflect;
 import StringTools;
 
+import funkin.modding.base.ScriptedMusicBeatState;
+
+// import haxe.ui.containers.dialogs.Dialog.DialogButton;
+import haxe.ui.containers.dialogs.Dialogs;
+// import haxe.ui.containers.dialogs.Dialogs.FileDialogTypes;
+
 using StringTools;
 
 class CharacterEditorV3 extends MusicBeatState {
+    
+    public static var FILE_FILTER_XML:FileFilter = new FileFilter("Codename Character File", "*.xml");
 
     public static var startingChar = { text: "Boyfriend", id: "bf", protected: false };
     public static var skipPreloading:Bool = false;
+
+    public static var startingNotif = null;
 
     public var customCharacterRegistry = [
         "init" => "lol"
@@ -169,6 +181,81 @@ class CharacterEditorV3 extends MusicBeatState {
         menuBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/menubar"));
         menuBar.findComponent("menuBarTitle").text = editorTitle + " v" + editorVersion;
         add(menuBar);
+
+        menuBar.findComponent("fromCNE").onClick = () -> {
+            var cneFilter = {
+                readContents: true,
+                title: "Open Character File",
+                readAsBinary: false,
+                extensions: [{label: "Codename Engine Character", extension: "xml"}]
+            };
+
+            Dialogs.openFile(function(button, selectedFiles) {
+                if (button == "{{ok}}") {
+                    var id = selectedFiles[0].name.replace(".xml", "");
+                    var convertedFile = NovaConverters.fromCNE(selectedFiles[0].text, id);
+
+                    var convertedCharacterDialog = RuntimeComponentBuilder.build(Paths.ui("character-editor/dialogs/convertedCharacterDialog"));
+                    //add(convertedCharacterDialog);
+                    convertedCharacterDialog.screenCenter();
+                    convertedCharacterDialog.showDialog(true);
+                    cancelInput = true;
+
+                    for (i in PolymodHandler.getAllMods()) {
+                        convertedCharacterDialog.findComponent("modFolderList").dataSource.add({ text: i.title + " (" + i.id + ")" });
+                    }
+                    convertedCharacterDialog.findComponent("modFolderList").selectedItem = { text: "None" };
+
+                    var cancelButton = convertedCharacterDialog.findComponent("dialogCancel");
+                    cancelButton.onClick = ()->{
+                        cancelInput = false;
+                        convertedCharacterDialog.hide();
+                    }
+
+                    var continueButton = convertedCharacterDialog.findComponent("dialogContinue");
+                    continueButton.onClick = ()->{
+                        var continu = true;
+                        if (convertedCharacterDialog.findComponent("modFolderList").text == "None") {
+                            newNotification("Error!", 'Could not create character!\nPlease select a mod folder first.', NotificationType.Error, 5000);
+                            continu = false;
+                        }
+
+                        if (continu) {
+                            for (i in PolymodHandler.getAllMods()) {
+                                if (i.title + " (" + i.id + ")" == convertedCharacterDialog.findComponent("modFolderList").text) {
+                                    var path = "mods/" + i.id + "/data/characters/" + id + ".json";
+     
+                                    var data = Serialize.process(convertedFile);
+
+                                    FileUtil.writeStringToPath(path, data);
+
+                                    customCharacterRegistry.set(id, Json.parse(data));
+
+                                    var item = { 
+                                        text: NovaConverters.capitalize(id), 
+                                        id: id, 
+                                        protected: false 
+                                    };
+                                    editCharacterWindow.findComponent("characterDropdown").dataSource.add(item);
+                                    PolymodHandler.forceReloadAssets();
+                                    CharacterEditorV3.startingChar = item;
+                                    CharacterEditorV3.startingNotif = {
+                                        title: "Success!",
+                                        body: 'Successfully converted character "' + NovaConverters.capitalize(id) + '"',
+                                        type: NotificationType.Success,
+                                        dur: 5000
+                                    }
+                                    FlxG.switchState(ScriptedMusicBeatState.init('CharacterEditorV3'));
+                                }
+                            }
+
+                            cancelInput = false;
+                            convertedCharacterDialog.hide();
+                        }
+                    }
+                }
+            }, cneFilter);
+		}
 
         menuBar.findComponent("uiSwap").onClick = ()->windowToggle = !windowToggle;
 
@@ -274,7 +361,7 @@ class CharacterEditorV3 extends MusicBeatState {
                             editCharacterWindow.findComponent("characterDropdown").dataSource.add(item);
                             editCharacterWindow.findComponent("characterDropdown").selectedItem = item;
 
-                            newNotification("Success!", 'Successfully created stage "' + newCharacterDialog.findComponent("characterNameField").text + '"', NotificationType.Success, 5000);
+                            newNotification("Success!", 'Successfully created character "' + newCharacterDialog.findComponent("characterNameField").text + '"', NotificationType.Success, 5000);
                         }
                     }
 
@@ -723,6 +810,13 @@ class CharacterEditorV3 extends MusicBeatState {
         crosshair.size = 50;
         crosshair.antialiasing = false;
         add(crosshair);
+
+        if (startingNotif != null) {
+            new FlxTimer().start(1, ()->{
+                newNotification(startingNotif.title, startingNotif.body, startingNotif.type, startingNotif.dur);
+                startingNotif = null;
+            });
+        }
     }
     
     function newNotification(title:String, body:String, ?type, ?expiryMs, ?actions) {
