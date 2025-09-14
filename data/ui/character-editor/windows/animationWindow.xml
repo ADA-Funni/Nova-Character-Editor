@@ -7,15 +7,15 @@
         <textfield id="animPrefix" placeholder="Animation Prefix" width="100%" verticalAlign="center" tooltip="The Animations Prefix in XML." />
         
         <label text="Asset Path:" style="padding: 2px;" verticalAlign="center" />
-        <textfield id="animPrefix" placeholder="Animation Asset Path" width="100%" verticalAlign="center" tooltip="If your animation is on a different sprite sheet set, \nthe Asset Path for it here." />
+        <textfield id="assetPath" placeholder="Animation Asset Path" width="100%" verticalAlign="center" tooltip="If your animation is on a different sprite sheet set, \nthe Asset Path for it here." />
 
         <label text="Indices:" style="padding: 2px;" verticalAlign="center" />
         <textfield id="animIndices" placeholder="Animations Indices" width="100%" verticalAlign="center" tooltip="Animation Indices." restrictChars="0-9, " />
 
         <label text="Offsets:" style="padding: 2px;" verticalAlign="center" />
         <hbox width="100%">
-            <number-stepper id="animOffsetX" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Animations X Offset."/>
-            <number-stepper id="animOffsetY" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Animations Y Offset."/>
+            <number-stepper id="animOffsetX" step="1" width="100%" verticalAlign="center" tooltip="The Animations X Offset."/>
+            <number-stepper id="animOffsetY" step="1" width="100%" verticalAlign="center" tooltip="The Animations Y Offset."/>
         </hbox>
         
     </grid>

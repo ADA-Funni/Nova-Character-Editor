@@ -8,16 +8,16 @@
     </style>
 
     <menu text="File" width="300">
-        <menu-item id="newStage" text="New" shortcutText="Ctrl + N"/>
+        <menu-item id="newCharacter" text="New" shortcutText="Ctrl + N"/>
         <menu-separator />
-        <menu-item id="saveStage" text="Save" shortcutText="Ctrl + S" />
-        <menu-item id="saveStageAs" text="Save As" shortcutText="Ctrl + Shift + S" />
-        <menu-item id="saveStageForPsych" text="Save For Psych" shortcutText="(Coming Soon)"
+        <menu-item id="saveCharacter" text="Save" shortcutText="Ctrl + S" />
+        <menu-item id="saveCharacterAs" text="Save As" shortcutText="Ctrl + Shift + S" />
+        <menu-item id="saveCharacterForPsych" text="Save For Psych" shortcutText="(Coming Soon)"
             disabled="true" />
-        <menu-item id="saveStageForCNE" text="Save For Codename Engine" shortcutText="(Coming Soon)"
+        <menu-item id="saveCharacterForCNE" text="Save For Codename Engine" shortcutText="(Coming Soon)"
             disabled="true" />
         <menu-separator />
-        <!-- <menu-item id="deleteStage" text="Delete Stage" style="color: indianred"/>
+        <!-- <menu-item id="deleteCharacter" text="Delete Character" style="color: indianred"/>
         <menu-separator /> -->
         <menu-item id="exitToMenu" text="Exit To Menu" shortcutText="Ctrl + Q" />
     </menu>
@@ -29,7 +29,7 @@
         I couldn't get onClick to work so I'm removing this
     </menu> -->
     <!-- <menu text="Windows">
-    <menu-item id="stageDataWindow" text="Stage Data" />
+    <menu-item id="CharacterDataWindow" text="Character Data" />
   </menu> -->
 
     <menu text="View" width="300">

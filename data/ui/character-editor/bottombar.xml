@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menubar id="menubar" width="100%" height="5%">
     <hbox>
-        <label text="X: " verticalAlign="center" style="font-size: 25"/>
+        <label text="X:" verticalAlign="center" style="font-size: 25"/>
         <label text="NULL" verticalAlign="center" id="xPos" style="font-size: 25" />
-        <label text="| Y: " verticalAlign="center" style="font-size: 25" />
+        <label text="| Y:" verticalAlign="center" style="font-size: 25" />
         <label text="NULL" verticalAlign="center" id="yPos" style="font-size: 25" />
     </hbox>
 </menubar>

@@ -8,6 +8,8 @@ import funkin.modding.PolymodHandler;
 
 import funkin.ui.mainmenu.MainMenuState;
 
+import flixel.text.FlxText;
+
 import haxe.ui.core.Screen;
 import haxe.ui.core.Component;
 import haxe.ui.core.TextDisplay;
@@ -43,10 +45,14 @@ import haxe.ui.containers.menus.MenuSeparator;
 
 import haxe.ui.containers.dialogs.Dialog;
 
+import haxe.ui.notifications.NotificationType;
+import haxe.ui.notifications.NotificationManager;
+
 import haxe.ui.containers.windows.Window;
 import haxe.ui.containers.windows.WindowManager;
 
 import flixel.util.FlxColor;
+import flixel.util.FlxTimer;
 
 import haxe.ui.data.ArrayDataSource;
 
@@ -68,6 +74,8 @@ import funkin.util.MathUtil;
 
 import flixel.FlxG;
 import flixel.FlxCamera;
+
+import haxe.Json;
 
 import Reflect;
 import StringTools;
@@ -103,11 +111,22 @@ class CharacterEditorV3 extends MusicBeatState {
     public var windowToggle:Bool = false;
 
     public var selectedCharacter;
+    public var onionSkin;
 
     public var keybinds:Array = [];
     public var cancelInput:Bool = false;
 
     public var iconIDOverlay:FunkinSprite;
+    public var assetPathOverlay:FunkinSprite;
+    public var animAssetPathOverlay:FunkinSprite;
+    
+	public var windowManager:WindowManager = new WindowManager();
+    public var notificationManager = new NotificationManager();
+
+    public var selectedAnim;
+    public var onionSkinAnim:String = "idle";
+
+    public var crosshair:FlxText;
 
     function new() {
         super('CharacterEditorV3');
@@ -136,6 +155,8 @@ class CharacterEditorV3 extends MusicBeatState {
         camHUD.bgColor = 0x00000000;
         FlxG.cameras.add(camHUD, true);
 
+        initNotification();
+
         var bg = new FunkinSprite(0, 0).loadGraphic(Paths.image('menuDesat'));
 		bg.scrollFactor.set(0, 0);
 		bg.setGraphicSize(FlxG.width, FlxG.height);
@@ -150,6 +171,34 @@ class CharacterEditorV3 extends MusicBeatState {
         add(menuBar);
 
         menuBar.findComponent("uiSwap").onClick = ()->windowToggle = !windowToggle;
+
+        var saveCharacterCallback = ()->{
+            if (editCharacterWindow.findComponent("characterDropdown").selectedItem.protected) {
+                trace("This is protected brochacho");
+                newNotification("Error!", 'Could not save character!\n"assets" is protected.', NotificationType.Error, 5000);
+                return;
+            }
+            trace("Saved??");
+            for (mod in PolymodHandler.getAllMods()) {
+                if (FileUtil.directoryExists("mods/" + mod.id + "/data/characters/")) {
+                    trace(FileUtil.readDir("mods/" + mod.id + "/data/characters/"), selectedCharacter.characterId);
+                    if (FileUtil.readDir("mods/" + mod.id + "/data/characters/").contains(selectedCharacter.characterId + ".json")) {
+                        var path = "mods/" + mod.id + "/data/characters/" + selectedCharacter.characterId + ".json";
+		                FileUtil.deleteFile(path);
+                        var parsed = Json.parse(Serialize.process(selectedCharacter._data));
+                        parsed.generatedBy = editorTitle + " v" + editorVersion;
+                        parsed.version = "1.0.0";
+		                FileUtil.writeStringToPath(path, Json.stringify(parsed, null, "\t"));
+
+                        newNotification("Success!", 'Successfully saved character to "' + path + '"', NotificationType.Success, 5000);
+                        return;
+                    }
+                }
+            }
+            newNotification("Error!", 'Could not save character!\nIdk why, maybe could not find it?', NotificationType.Error, 5000);
+        };
+        menuBar.findComponent("saveCharacter").onClick = saveCharacterCallback;
+        newKeybind(["CONTROL", "S"], saveCharacterCallback, "justPressed");
         
         var exitToMenuCallback = ()->{
             FlxG.switchState(new MainMenuState());
@@ -158,15 +207,95 @@ class CharacterEditorV3 extends MusicBeatState {
 
         menuBar.findComponent("exitToMenu").onClick = exitToMenuCallback;
         newKeybind(["CONTROL", "Q"], exitToMenuCallback);
+        
+        var newCharacterCallback = ()->{
+            var newCharacterDialog = RuntimeComponentBuilder.build(Paths.ui("character-editor/dialogs/newCharacterDialog"));
+            //add(newCharacterDialog);
+            newCharacterDialog.screenCenter();
+            newCharacterDialog.showDialog(true);
+            cancelInput = true;
+
+            for (i in PolymodHandler.getAllMods()) {
+			    newCharacterDialog.findComponent("modFolderList").dataSource.add({ text: i.title + " (" + i.id + ")" });
+            }
+            newCharacterDialog.findComponent("modFolderList").selectedItem = { text: "None" };
+
+            var cancelButton = newCharacterDialog.findComponent("dialogCancel");
+            cancelButton.onClick = ()->{
+                cancelInput = false;
+                newCharacterDialog.hide();
+            }
+
+            var continueButton = newCharacterDialog.findComponent("dialogContinue");
+            continueButton.onClick = ()->{
+                var continu = true;
+                if (newCharacterDialog.findComponent("modFolderList").text == "None") {
+                    newNotification("Error!", 'Could not create character!\nPlease select a mod folder first.', NotificationType.Error, 5000);
+                    continu = false;
+                } else if (newCharacterDialog.findComponent("characterNameField").text == "" || newCharacterDialog.findComponent("characterNameField").text == null) {
+                    newNotification("Error!", 'Could not create character!\nCharacter Name must not be empty.', NotificationType.Error, 5000);
+                    continu = false;
+                } else if (newCharacterDialog.findComponent("fileNameField").text == "" || newCharacterDialog.findComponent("fileNameField").text == null) {
+                    newNotification("Error!", 'Could not create character!\nFile Name must not be empty.', NotificationType.Error, 5000);
+                    continu = false;
+                }
+
+                if (continu) {
+                    for (i in PolymodHandler.getAllMods()) {
+				        if (i.title + " (" + i.id + ")" == newCharacterDialog.findComponent("modFolderList").text) {
+                            var path = "mods/" + i.id + "/data/characters/" + newCharacterDialog.findComponent("fileNameField").text + ".json";
+
+                            var data = Serialize.process({
+                                name: newCharacterDialog.findComponent("characterNameField").text,
+                                animations: [
+                                    {
+                                        name: "newAnimation",
+                                        prefix: "???",
+                                        assetPath: null,
+                                        offsets: [0, 0],
+                                        looped: false,
+                                        flipX: false, 
+                                        flipY: false,
+                                        frameRate: 24,
+                                        frameIndices: []
+                                    }
+                                ]
+                            });
+                            
+                            FileUtil.writeStringToPath(path, data);
+
+                            customCharacterRegistry.set(newCharacterDialog.findComponent("fileNameField").text, Json.parse(data));
+
+                            var item = { 
+                                text: newCharacterDialog.findComponent("characterNameField").text, 
+                                id: newCharacterDialog.findComponent("fileNameField").text, 
+                                protected: false 
+                            };
+                            editCharacterWindow.findComponent("characterDropdown").dataSource.add(item);
+                            editCharacterWindow.findComponent("characterDropdown").selectedItem = item;
+
+                            newNotification("Success!", 'Successfully created stage "' + newCharacterDialog.findComponent("characterNameField").text + '"', NotificationType.Success, 5000);
+                        }
+                    }
+
+                    cancelInput = false;
+                    newCharacterDialog.hide();
+                }
+            }
+
+        }
+        menuBar.findComponent("newCharacter").onClick = newCharacterCallback;
+        newKeybind(["CONTROL", "N"], newCharacterCallback);
 
         bottomBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/bottombar"));
         add(bottomBar);
-        bottomBar.y = FlxG.height - bottomBar.height;
+        bottomBar.y = FlxG.height - bottomBar.height + 2;
 
         var style = RuntimeComponentBuilder.build(Paths.ui("character-editor/styles/main"));
         add(style);
 
         iconWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/iconWindow"));
+        iconWindow.windowManager = windowManager;
         add(iconWindow);
         iconWindow.screenCenter();
         
@@ -192,11 +321,13 @@ class CharacterEditorV3 extends MusicBeatState {
 
         iconWindow.findComponent("iconOffsetX").onChange = ()->{
             selectedCharacter._data?.healthIcon?.offsets[0] = iconWindow.findComponent("iconOffsetX").pos;
+            selectedCharacter._data.offsets[0] = editCharacterWindow.findComponent("charOffsetsX").pos;
             reloadIcons();
         }
 
         iconWindow.findComponent("iconOffsetY").onChange = ()->{
             selectedCharacter._data.healthIcon?.offsets[1] = iconWindow.findComponent("iconOffsetY").pos;
+            selectedCharacter._data.offsets[1] = editCharacterWindow.findComponent("charOffsetsY").pos;
             reloadIcons();
         }
 
@@ -214,27 +345,153 @@ class CharacterEditorV3 extends MusicBeatState {
         iconWindow.add(iconIDOverlay);
 
         animationWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/animationWindow"));
+        animationWindow.windowManager = windowManager;
         add(animationWindow);
         animationWindow.screenCenter();
 
+        animAssetPathOverlay = new FunkinSprite(105, 107).makeGraphic(iconWindow.findComponent("iconAssetPath").width - 2, iconWindow.findComponent("iconAssetPath").height - 2, FlxColor.RED);
+        animAssetPathOverlay.blend = 0;
+        animAssetPathOverlay.alpha = 0.5;
+        animAssetPathOverlay.visible = false;
+        animationWindow.add(animAssetPathOverlay);
+
+        animationWindow.findComponent("animName").onChange = ()->{
+            if (selectedAnim == null) return;
+            if (animationWindow.findComponent("animName").text == null || animationWindow.findComponent("animName").text == "") return;
+            if (onionSkinAnim == selectedAnim.name) {
+                onionSkinAnim = animationWindow.findComponent("animName").text;
+            }
+            selectedAnim.name = animationWindow.findComponent("animName").text;
+            editCharacterWindow.findComponent("charAnimationList").selectedItem.text = animationWindow.findComponent("animName").text;
+            editCharacterWindow.findComponent("charAnimationList").selectedItems[0].text = animationWindow.findComponent("animName").text;
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("animPrefix").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.prefix = animationWindow.findComponent("animPrefix").text;
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("assetPath").onChange = ()->{
+            if (selectedAnim == null) return;
+            animAssetPathOverlay.visible = false;
+            if (animationWindow.findComponent("assetPath").text == "" || animationWindow.findComponent("assetPath").text == null) {
+                selectedAnim.assetPath = null;
+                reloadCharacter();
+                return;
+            }
+            if (checkImageExists(animationWindow.findComponent("assetPath").text)) {
+                selectedAnim.assetPath = animationWindow.findComponent("assetPath").text;
+                reloadCharacter();
+            }
+
+            animAssetPathOverlay.visible = !checkImageExists(animationWindow.findComponent("assetPath").text);
+        }
+
+        animationWindow.findComponent("animIndices").onChange = ()->{
+            selectedAnim.frameIndices = stringToIndices(animationWindow.findComponent("animIndices").text);
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("animOffsetX").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.offsets[0] = animationWindow.findComponent("animOffsetX").pos;
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("animOffsetY").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.offsets[1] = animationWindow.findComponent("animOffsetY").pos;
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("animFlipX").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.flipX = animationWindow.findComponent("animFlipX").selected;
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("animIsPixel").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.isPixel = animationWindow.findComponent("animIsPixel").selected;
+            reloadCharacter();
+        }
+
+        animationWindow.findComponent("animIsLooped").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.looped = animationWindow.findComponent("animIsLooped").selected;
+            reloadCharacter();
+        }
+
         editCharacterWindow = RuntimeComponentBuilder.build(Paths.ui("character-editor/windows/characterWindow"));
+        editCharacterWindow.windowManager = windowManager;
         add(editCharacterWindow);
         editCharacterWindow.screenCenter();
+        
+        editCharacterWindow.findComponent("deleteAnim").onClick = ()->{
+            selectedCharacter._data.animations.remove(selectedAnim);
+            reloadCharacter();
+            reloadAnimationList();
+            editCharacterWindow.findComponent("charAnimationList").selectedItem = editCharacterWindow.findComponent("charAnimationList").dataSource.get(editCharacterWindow.findComponent("charAnimationList").dataSource.size-1);
+            editCharacterWindow.findComponent("charAnimationList").selectedItems = [editCharacterWindow.findComponent("charAnimationList").dataSource.get(editCharacterWindow.findComponent("charAnimationList").dataSource.size-1)];
+        }
+        
+        editCharacterWindow.findComponent("createAnim").onClick = ()->{
+            var index = 1;
+            for (i in selectedCharacter._data.animations) {
+                if (i.name.startsWith("newAnimation")) index++;
+            }
+            selectedCharacter._data.animations.push({
+                name: "newAnimation" + (index == 1 ? "" : index),
+                prefix: "???",
+                assetPath: null,
+                offsets: [0, 0],
+                looped: false,
+                flipX: false, 
+                flipY: false,
+                frameRate: 24,
+                frameIndices: []
+            });
+            reloadCharacter();
+            reloadAnimationList();
+            editCharacterWindow.findComponent("charAnimationList").selectedItem = editCharacterWindow.findComponent("charAnimationList").dataSource.get(editCharacterWindow.findComponent("charAnimationList").dataSource.size-1);
+            editCharacterWindow.findComponent("charAnimationList").selectedItems = [editCharacterWindow.findComponent("charAnimationList").dataSource.get(editCharacterWindow.findComponent("charAnimationList").dataSource.size-1)];
+            //selectedCharacter.playAnimation("newAnimation" + (index == 0 ? "" : index), true);
+        }
+        
+        assetPathOverlay = new FunkinSprite(133, 110).makeGraphic(editCharacterWindow.findComponent("charAssetPath").width - 2, editCharacterWindow.findComponent("charAssetPath").height - 2, FlxColor.RED);
+        assetPathOverlay.blend = 0;
+        assetPathOverlay.alpha = 0.5;
+        assetPathOverlay.visible = false;
+        editCharacterWindow.add(assetPathOverlay);
 
         reloadCharacterList();
 
         editCharacterWindow.findComponent("characterDropdown").onChange = ()->{
             if (members.contains(selectedCharacter))
                 remove(selectedCharacter);
+            if (members.contains(onionSkin))
+                remove(onionSkin);
 
             selectedCharacter = CharacterDataParser.fetchCharacter("bf");
-            trace(customCharacterRegistry.get(editCharacterWindow.findComponent("characterDropdown").selectedItem.id));
             selectedCharacter._data = customCharacterRegistry.get(editCharacterWindow.findComponent("characterDropdown").selectedItem.id);
+            selectedCharacter.characterId = editCharacterWindow.findComponent("characterDropdown").selectedItem.id;
             selectedCharacter.onCreate();
             selectedCharacter.cameras = [camGame];
             selectedCharacter.screenCenter();
             selectedCharacter.flipX = false;
             selectedCharacter.debug = true;
+            
+            onionSkin = CharacterDataParser.fetchCharacter("bf");
+            onionSkin._data = selectedCharacter._data;
+            onionSkin.onCreate();
+            onionSkin.cameras = [camGame];
+            onionSkin.screenCenter();
+            onionSkin.flipX = false;
+            onionSkin.debug = true;
+            onionSkin.alpha = 0.5;
+            add(onionSkin);
             add(selectedCharacter);
 
             editCharacterWindow.findComponent("charName").text = selectedCharacter._data.name;
@@ -244,15 +501,86 @@ class CharacterEditorV3 extends MusicBeatState {
                 editCharacterWindow.findComponent("characterDropdown").text = editCharacterWindow.findComponent("charName").text;
             };
             editCharacterWindow.findComponent("charAssetPath").text = selectedCharacter._data.assetPath.replace("characters/", "");
+            editCharacterWindow.findComponent("charAssetPath").onChange = ()->{
+                assetPathOverlay.visible = true;
+                if (editCharacterWindow.findComponent("charAssetPath").text == null || editCharacterWindow.findComponent("charAssetPath").text == "") return;
+                if (checkImageExists("characters/" + editCharacterWindow.findComponent("charAssetPath").text)) {
+                    selectedCharacter._data.assetPath = "characters/" + editCharacterWindow.findComponent("charAssetPath").text;
+                    reloadCharacter();
+                }
+                assetPathOverlay.visible = !checkImageExists("characters/" + editCharacterWindow.findComponent("charAssetPath").text);
+            }
+            var check = ()->{
+                for (i in 0...editCharacterWindow.findComponent("charRenderType").dataSource.size) {
+                    var item = editCharacterWindow.findComponent("charRenderType").dataSource.get(i);
+                    if (item.data == selectedCharacter._data.renderType) return item;
+                }
+            }
+
+            editCharacterWindow.findComponent("charRenderType").selectedItem = check();
+            editCharacterWindow.findComponent("charRenderType").onChange = ()->{
+                //trace(editCharacterWindow.findComponent("charRenderType").selectedItem.data);
+                selectedCharacter._data.renderType = editCharacterWindow.findComponent("charRenderType").selectedItem.data;
+                reloadCharacter();
+            }
+
             editCharacterWindow.findComponent("charScale").pos = selectedCharacter._data.scale;
+            editCharacterWindow.findComponent("charScale").onChange = ()->{
+                selectedCharacter._data.scale = editCharacterWindow.findComponent("charScale").pos;
+                reloadCharacter();
+            };
+
             editCharacterWindow.findComponent("charSingTime").pos = selectedCharacter._data.singTime;
+            editCharacterWindow.findComponent("charSingTime").onChange = ()->{
+                selectedCharacter._data.singTime = editCharacterWindow.findComponent("charSingTime").pos;
+            };
+
             editCharacterWindow.findComponent("charDanceInterval").pos = selectedCharacter._data.danceEvery;
-            editCharacterWindow.findComponent("charOffsetsX").pos = (selectedCharacter._data?.offsets ?? [0, 0])[0];
-            editCharacterWindow.findComponent("charOffsetsY").pos = (selectedCharacter._data?.offsets ?? [0, 0])[1];
+            editCharacterWindow.findComponent("charDanceInterval").onChange = ()->{
+                selectedCharacter._data.danceEvery = editCharacterWindow.findComponent("charDanceInterval").pos;
+            };
+            
+            editCharacterWindow.findComponent("charOffsetsX").pos = selectedCharacter._data.offsets[0];
+            editCharacterWindow.findComponent("charOffsetsX").onChange = ()->{
+                selectedCharacter._data.offsets[0] = editCharacterWindow.findComponent("charOffsetsX").pos;
+                selectedCharacter._data.healthIcon.offsets[0] = iconWindow.findComponent("iconOffsetX").pos;
+                reloadCharacter();
+            };
+            
+            editCharacterWindow.findComponent("charOffsetsY").pos = selectedCharacter._data.offsets[1];
+            editCharacterWindow.findComponent("charOffsetsY").onChange = ()->{
+                selectedCharacter._data.offsets[1] = editCharacterWindow.findComponent("charOffsetsY").pos;
+                selectedCharacter._data.healthIcon.offsets[1] = iconWindow.findComponent("iconOffsetY").pos;
+                reloadCharacter();
+            }
+            
             editCharacterWindow.findComponent("charCamOffsetsX").pos = (selectedCharacter._data?.cameraOffsets ?? [0, 0])[0];
+            editCharacterWindow.findComponent("charCamOffsetsX").onChange = ()->{
+                selectedCharacter._data.cameraOffsets[0] = editCharacterWindow.findComponent("charCamOffsetsX").pos;
+                selectedCharacter._data.offsets[0] = editCharacterWindow.findComponent("charOffsetsX").pos;
+                selectedCharacter._data.healthIcon.offsets[0] = iconWindow.findComponent("iconOffsetX").pos;
+                reloadCharacter();
+            }
+            
             editCharacterWindow.findComponent("charCamOffsetsY").pos = (selectedCharacter._data?.cameraOffsets ?? [0, 0])[1];
+            editCharacterWindow.findComponent("charCamOffsetsY").onChange = ()->{
+                selectedCharacter._data.cameraOffsets[1] = editCharacterWindow.findComponent("charCamOffsetsY").pos;
+                selectedCharacter._data.offsets[1] = editCharacterWindow.findComponent("charOffsetsY").pos;
+                selectedCharacter._data.healthIcon.offsets[1] = iconWindow.findComponent("iconOffsetY").pos;
+                reloadCharacter();
+            }
+            
             editCharacterWindow.findComponent("charFlipX").selected = selectedCharacter._data?.flipX ?? false;
+            editCharacterWindow.findComponent("charFlipX").onChange = ()->{
+                selectedCharacter._data.flipX = editCharacterWindow.findComponent("charFlipX").selected;
+                reloadCharacter();
+            }
+            
             editCharacterWindow.findComponent("charIsPixel").selected = selectedCharacter._data?.isPixel ?? false;
+            editCharacterWindow.findComponent("charIsPixel").onChange = ()->{
+                selectedCharacter._data.isPixel = editCharacterWindow.findComponent("charIsPixel").selected;
+                reloadCharacter();
+            }
 
             iconWindow.findComponent("iconAssetPath").text = selectedCharacter._data?.healthIcon?.id ?? selectedCharacter.id;
             iconWindow.findComponent("iconFlipX").selected = selectedCharacter._data?.healthIcon?.flipX ?? false;
@@ -262,23 +590,110 @@ class CharacterEditorV3 extends MusicBeatState {
             iconWindow.findComponent("iconOffsetY").pos = selectedCharacter._data?.healthIcon?.offsets[1] ?? 0;
             reloadAnimationList();
         }
+        
+        var animationList = editCharacterWindow.findComponent("charAnimationList");
+        animationList.onChange = ()->{
+            selectedCharacter.playAnimation(animationList.selectedItem.text, true);
+            for (i in selectedCharacter._data.animations) {
+                if (i.name == animationList.selectedItem.text) {
+                    selectedAnim = i;
+                    animationWindow.findComponent("animName").text = i.name;
+                    animationWindow.findComponent("animPrefix").text = i.prefix;
+                    animationWindow.findComponent("assetPath").text = i.assetPath;
+                    animationWindow.findComponent("animIndices").text = (i.frameIndices ?? []).join(", ");
+                    animationWindow.findComponent("animOffsetX").pos = i.offsets[0];
+                    animationWindow.findComponent("animOffsetY").pos = i.offsets[1];
+                    animationWindow.findComponent("animFlipX").selected = i.flipX;
+                    animationWindow.findComponent("animIsPixel").selected = i.isPixel;
+                    animationWindow.findComponent("animIsLooped").selected = i.looped;
+                }
+            }
+        }
+
 
         newKeybind(["W"], (elapsed) -> !cancelInput ? camGame.scroll.y -= ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
         newKeybind(["A"], (elapsed) -> !cancelInput ? camGame.scroll.x -= ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
         newKeybind(["S"], (elapsed) -> !cancelInput ? camGame.scroll.y += ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
         newKeybind(["D"], (elapsed) -> !cancelInput ? camGame.scroll.x += ((FlxG.keys.pressed.SHIFT ? 10 : !FlxG.keys.pressed.CONTROL ? 5 : 0) * elapsed) * 75 : 0, "pressed");
 
+        newKeybind(["I"], (elapsed) -> {
+            if (FlxG.keys.pressed.CONTROL || cancelInput) return;
+            selectedCharacter.playAnimation("singUP", true);
+            animationList.selectedItem = null;
+            animationList.selectedItems = [];
+        });
+
+        newKeybind(["J"], (elapsed) -> {
+            if (FlxG.keys.pressed.CONTROL || cancelInput) return;
+            selectedCharacter.playAnimation("singLEFT", true);
+            animationList.selectedItem = null;
+            animationList.selectedItems = [];
+        });
+        
+        newKeybind(["K"], (elapsed) -> {
+            if (FlxG.keys.pressed.CONTROL || cancelInput) return;
+            selectedCharacter.playAnimation("singDOWN", true);
+            animationList.selectedItem = null;
+            animationList.selectedItems = [];
+        });
+        
+        newKeybind(["L"], (elapsed) -> {
+            if (FlxG.keys.pressed.CONTROL || cancelInput) return;
+            selectedCharacter.playAnimation("singRIGHT", true);
+            animationList.selectedItem = null;
+            animationList.selectedItems = [];
+        });
+        
+
         newKeybind(["Q"], (elapsed) -> (!cancelInput && !FlxG.keys.pressed.CONTROL) ? camGame.zoom -= (0.015 * elapsed) * 100 : 0, "pressed");
         newKeybind(["E"], (elapsed) -> (!cancelInput && !FlxG.keys.pressed.CONTROL) ? camGame.zoom += (0.015 * elapsed) * 100 : 0, "pressed");
 
         newKeybind(["CONTROL", "E"], ()->camHUD.visible = !camHUD.visible);
 
-        var animationList = editCharacterWindow.findComponent("charAnimationList");
-        animationList.onChange = ()->{
-            selectedCharacter.playAnimation(animationList.selectedItem.text);
-        }
-
         editCharacterWindow.findComponent("characterDropdown").selectedItem = startingChar;
+
+        crosshair = new FlxText(0,0,null,"+");
+        crosshair.cameras = [camGame];
+        crosshair.size = 50;
+        crosshair.antialiasing = false;
+        add(crosshair);
+    }
+    
+    function newNotification(title:String, body:String, ?type, ?expiryMs, ?actions) {
+        notificationManager.addNotification({
+            title: title,
+            body: body,
+            type: type ?? NotificationType.Default,
+            expiryMs: expiryMs ?? null,
+            actions: actions ?? []
+        });
+    }
+    
+    function initNotification() {
+        notificationManager.addNotification({
+            title: "Welcome!",
+            body: "Welcome to the Nova Character Editor! Press F1 for a user guide.",
+            type: NotificationType.Default
+        });
+    }
+
+    function reloadCharacter() {
+        reloadAnimationList(false);
+        selectedCharacter.onCreate();
+        if (selectedAnim != null)
+            selectedCharacter.playAnimation(selectedAnim.name, true);
+        selectedCharacter.scale.set(selectedCharacter._data.scale, selectedCharacter._data.scale);
+        onionSkin.onCreate();
+        onionSkin.playAnimation(onionSkinAnim ?? "idle", true);
+        onionSkin.animation.finish();
+        selectedCharacter.screenCenter();
+        onionSkin.screenCenter();
+
+        selectedCharacter.offset.x = 0;
+        selectedCharacter.offset.y = 0;
+
+        onionSkin.offset.x = 0;
+        onionSkin.offset.y = 0;
     }
 
     function reloadCharacterList() {
@@ -298,7 +713,7 @@ class CharacterEditorV3 extends MusicBeatState {
             { text: "Boyfriend", id: "bf", protected: true },
             { text: "Girlfriend", id: "gf", protected: true },
             { text: "Daddy Dearest", id: "dad", protected: true },
-            { text: "Senpai", id: "senpai", protected: true }
+            // { text: "Senpai", id: "senpai", protected: true }
         ];
         for (i in presets) {
             if (i.id != startingChar.id) {
@@ -325,14 +740,16 @@ class CharacterEditorV3 extends MusicBeatState {
         iconPreviewLosing.playAnimation("losing", true);
     }
 
-    function reloadAnimationList() {
+    function reloadAnimationList(deselect:Bool) {
         var list = editCharacterWindow.findComponent("charAnimationList");
         list.dataSource.clear();
         for (i in selectedCharacter._data.animations) {
-            list.dataSource.add({ text: i.name });
+            list.dataSource.add({ text: i.name, onion: i.name == onionSkinAnim, prev: i.name == onionSkinAnim });
         }
-        list.selectedItems = [];
-        list.selectedItem = null;
+        if (deselect ?? true) {
+            list.selectedItems = [];
+            list.selectedItem = null;
+        }
     }
 
     function update(elapsed) {
@@ -343,7 +760,45 @@ class CharacterEditorV3 extends MusicBeatState {
             FlxG.sound.play(Paths.sound("click"));
         }
 
+        for (i in 0...editCharacterWindow.findComponent("charAnimationList").dataSource.size) {
+            var item = editCharacterWindow.findComponent("charAnimationList").dataSource.get(i);
+            if (item.prev != item.onion) {
+                for (i2 in 0...editCharacterWindow.findComponent("charAnimationList").dataSource.size) {
+                    var item2 = editCharacterWindow.findComponent("charAnimationList").dataSource.get(i2);
+                    if (i2 != i) {
+                        item2.onion = false;
+                        item2.prev = false;
+                    }
+                }
+                item.prev = true;
+            }
+            if (item.onion)
+                onionSkinAnim = item.text;
+        }
+
+        if (onionSkin != null) {
+            onionSkin.playAnimation(onionSkinAnim ?? "idle", true);
+            onionSkin.animation.finish();
+            crosshair.x = selectedCharacter.x + (selectedCharacter.width/2) - (crosshair.width/2) + selectedCharacter._data.cameraOffsets[0];
+            crosshair.y = selectedCharacter.y + (selectedCharacter.height/2) - (crosshair.height/2) + selectedCharacter._data.cameraOffsets[1];
+        }
+
         if (editCharacterWindow != null) {
+
+            animationWindow.disabled = editCharacterWindow.findComponent("charAnimationList").selectedItem == null;
+            if (editCharacterWindow.findComponent("charAnimationList").selectedItem == null) {
+                animationWindow.findComponent("animName").text = null;
+                animationWindow.findComponent("animPrefix").text = null;
+                animationWindow.findComponent("assetPath").text = null;
+                animationWindow.findComponent("animIndices").text = null;
+                animationWindow.findComponent("animOffsetX").pos = 0;
+                animationWindow.findComponent("animOffsetY").pos = 0;
+                animationWindow.findComponent("animFlipX").selected = false;
+                animationWindow.findComponent("animIsPixel").selected = false;
+                animationWindow.findComponent("animIsLooped").selected = false;
+                selectedAnim = null;
+            }
+
             var prev = editCharacterWindow.x;
             editCharacterWindow.x = MathUtil.coolLerp(editCharacterWindow.x, windowToggle ? 20 : FlxG.width - editCharacterWindow.width - 20, 0.1);
             iconWindow.x = MathUtil.coolLerp(iconWindow.x, windowToggle ? 20 + editCharacterWindow.width : FlxG.width - editCharacterWindow.width - 20 - iconWindow.width, 0.1);
@@ -352,6 +807,16 @@ class CharacterEditorV3 extends MusicBeatState {
             iconWindow.y = animationWindow.y + animationWindow.height;
             prev -= editCharacterWindow.x;
             camGame.x += prev*0.55;
+        }
+
+        if (bottomBar != null) {
+            if (selectedAnim != null) {
+                bottomBar.findComponent("xPos").text = selectedAnim.offsets != null ? selectedAnim.offsets[0] : "NULL";
+                bottomBar.findComponent("yPos").text = selectedAnim.offsets != null ? selectedAnim.offsets[1] : "NULL";
+            } else {
+                bottomBar.findComponent("xPos").text = "NULL";
+                bottomBar.findComponent("yPos").text = "NULL";
+            }
         }
 
         if (FlxG.keys.justPressed.SPACE)
@@ -387,6 +852,8 @@ class CharacterEditorV3 extends MusicBeatState {
         iconPreview.updateHitbox();
         iconPreview.x = iconWindow.x + (iconWindow.width/2) - (iconPreview.width/2) - 50;
         iconPreview.y = iconWindow.y + (iconWindow.height/2) - (iconPreview.height/2) + 80;
+        iconPreview.x += selectedCharacter._data.healthIcon.offsets[0];
+        iconPreview.y += selectedCharacter._data.healthIcon.offsets[1];
 
         iconPreviewLosing.scale.set(0.7 * selectedCharacter._data?.healthIcon?.scale, 0.7 * selectedCharacter._data?.healthIcon?.scale);
         /* iconPreviewLosing.scale.x *= selectedCharacter._data?.healthIcon?.isPixel ? 5 : 1;
@@ -394,6 +861,10 @@ class CharacterEditorV3 extends MusicBeatState {
         iconPreviewLosing.updateHitbox();
         iconPreviewLosing.x = iconWindow.x + (iconWindow.width/2) - (iconPreviewLosing.width/2) + 50;
         iconPreviewLosing.y = iconWindow.y + (iconWindow.height/2) - (iconPreviewLosing.height/2) + 80;
+        iconPreviewLosing.x += selectedCharacter._data.healthIcon.offsets[0];
+        iconPreviewLosing.y += selectedCharacter._data.healthIcon.offsets[1];
+
+        camGame.zoom = camGame.zoom < 0.05 ? 0.05 : camGame.zoom;
     }
 
     function newKeybind(keys:Array<String>, action, ?type) {
@@ -437,5 +908,16 @@ class CharacterEditorV3 extends MusicBeatState {
         }
 
         return fileExists;
+    }
+
+    function stringToIndices(string:String):Array<Int> {
+        string = string.replace(" ", "");
+        var split = string.split(",");
+        var indices = [];
+        for (i in split) {
+            if (Std.parseInt(i) != null)
+                indices.push(Std.parseInt(i));
+        }
+        return indices;
     }
 }

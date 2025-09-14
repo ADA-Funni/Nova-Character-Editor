@@ -13,14 +13,14 @@
         <textfield id="charAssetPath" placeholder="Asset Path" width="100%" verticalAlign="center" tooltip="The Characters Asset Path." />
 
         <label text="Render Type:" style="padding: 2px;" verticalAlign="center" />
-        <option-stepper width="100%" id="charRenderType" tooltip="Character Render Type.">
+        <dropdown width="100%" id="charRenderType" tooltip="Character Render Type.">
             <data>
                 <item text="Sparrow" data="sparrow" />
                 <item text="Multi-Sparrow" data="multisparrow" />
                 <item text="Texture Atlas" data="textureatlas" />
-                <item text="Packer" data="packer" />
+                <!-- <item text="Packer" data="packer" /> -->
             </data>
-        </option-stepper>
+        </dropdown>
 
         <label text="Scale:" style="padding: 2px;" verticalAlign="center" />
         <number-stepper id="charScale" min="0.1" pos="1" step="0.1" width="100%" verticalAlign="center" tooltip="The Scale of the Character."/>
@@ -33,14 +33,14 @@
 
         <label text="Offsets:" style="padding: 2px;" verticalAlign="center" />
         <hbox width="100%">
-            <number-stepper id="charOffsetsX" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters X Offset."/>
-            <number-stepper id="charOffsetsY" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters Y Offset."/>
+            <number-stepper id="charOffsetsX" step="1" width="100%" verticalAlign="center" tooltip="The Characters X Offset."/>
+            <number-stepper id="charOffsetsY" step="1" width="100%" verticalAlign="center" tooltip="The Characters Y Offset."/>
         </hbox>
 
         <label text="Camera Offsets:" style="padding: 2px;" verticalAlign="center" />
         <hbox width="100%">
-            <number-stepper id="charCamOffsetsX" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters X Offset."/>
-            <number-stepper id="charCamOffsetsY" min="0" pos="1" step="1" width="100%" verticalAlign="center" tooltip="The Characters Y Offset."/>
+            <number-stepper id="charCamOffsetsX" step="1" width="100%" verticalAlign="center" tooltip="The Characters Camera X Offset."/>
+            <number-stepper id="charCamOffsetsY" step="1" width="100%" verticalAlign="center" tooltip="The Characters Camera Y Offset."/>
         </hbox>
     </grid>
 
@@ -56,8 +56,12 @@
     <vbox width="100%">
         <label text="Animations:" style="padding: 2px;" verticalAlign="center"/>
         <listview id="charAnimationList" width="100%" height="180" selectedIndex="0">
+            <item-renderer width="100%" layout="horizontal">
+               <label id="text" width="100%" verticalAlign="center"/>
+               <optionbox id="onion" group="onionSkin" selected="false"/>
+           </item-renderer>
             <data>
-                <item text="Test"/>
+                <item text="Test" onion="false"/>
             </data>
         </listview>
     </vbox>
