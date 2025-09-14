@@ -938,7 +938,6 @@ class CharacterEditorV3 extends MusicBeatState {
 
         if (FlxG.keys.justPressed.LEFT) {
             animationWindow.findComponent("animOffsetX").pos -= FlxG.keys.pressed.SHIFT ? 10 : (FlxG.keys.pressed.CONTROL ? 1 : 5);
-            editCharacterWindow.findComponent("charAnimationList").selected = false;
         }
         if (FlxG.keys.justPressed.RIGHT) {
             animationWindow.findComponent("animOffsetX").pos += FlxG.keys.pressed.SHIFT ? 10 : (FlxG.keys.pressed.CONTROL ? 1 : 5);
