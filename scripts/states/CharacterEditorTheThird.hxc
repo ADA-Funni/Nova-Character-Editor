@@ -304,6 +304,49 @@ class CharacterEditorV3 extends MusicBeatState {
         newKeybind(["F1"], openUderGuide, "justPressed");
         menuBar.findComponent("userGuide").onClick = openUderGuide;
 
+        var musicSlider = menuBar.findComponent("menubarItemVolumeInstrumental");
+        musicSlider.onChange = ()->{
+            FlxG.sound.music.volume = musicSlider.pos/100;
+            menuBar.findComponent("editorMusicVolume").text = "Editor Music - " + Math.round(musicSlider.pos) + "%";
+        }
+
+        var musicMenu = menuBar.findComponent("musicMenu");
+        musicMenu.dataSource.add({text: "Freaky Menu", id: "freakyMenu"});
+        var folders = [
+            "assets/shared/music/",
+            "assets/music/"
+        ];
+        for (mod in PolymodHandler.getAllMods()) {
+            if (FileUtil.directoryExists("mods/" + mod.id + "/music/")) {
+                folders.push("mods/" + mod.id + "/music/");
+            }
+        }
+        for (folder in folders) {
+            for (file in FileUtil.readDir(folder)) {
+                if (file.endsWith(".ogg") || file == "credits" || file == "freakyMenu" || file == "gameplay") continue;
+                var name;
+                if (FileUtil.fileExists(folder + file + "/" + file + "-metadata.json")) {
+                    name = Json.parse(FileUtil.readStringFromPath(folder + file + "/" + file + "-metadata.json")).songName;
+                } else {
+                    name = file;
+                }
+                musicMenu.dataSource.add({text: name, id: file});
+                musicMenu.onChange = ()->{
+                    FunkinSound.playMusic(musicMenu.selectedItem.id, {startingVolume: 1, overrideExisting: true, restartTrack: false, persist: true, loop: true});
+                    // FlxG.sound.music.fadeIn(0.5, 0, 1);
+                }
+                /* var thing = new MenuItem();
+                thing.text = name;
+                thing.id = file;
+                thing.onClick = ()->{
+                    FunkinSound.playMusic(file, {startingVolume: 0, overrideExisting: true, restartTrack: false, persist: true, loop: true});
+                    FlxG.sound.music.fadeIn(0.5, 0, 1);
+                } */
+    
+                //musicMenu.addComponent(thing);
+            }
+        }
+
         bottomBar = RuntimeComponentBuilder.build(Paths.ui("character-editor/bottombar"));
         add(bottomBar);
         bottomBar.y = FlxG.height - bottomBar.height + 2;
@@ -413,13 +456,13 @@ class CharacterEditorV3 extends MusicBeatState {
 
         animationWindow.findComponent("animOffsetX").onChange = ()->{
             if (selectedAnim == null) return;
-            selectedAnim.offsets[0] = animationWindow.findComponent("animOffsetX").pos;
+            selectedAnim.offsets[0] = -animationWindow.findComponent("animOffsetX").pos;
             reloadCharacter();
         }
 
         animationWindow.findComponent("animOffsetY").onChange = ()->{
             if (selectedAnim == null) return;
-            selectedAnim.offsets[1] = animationWindow.findComponent("animOffsetY").pos;
+            selectedAnim.offsets[1] = -animationWindow.findComponent("animOffsetY").pos;
             reloadCharacter();
         }
 
@@ -618,8 +661,8 @@ class CharacterEditorV3 extends MusicBeatState {
                     animationWindow.findComponent("animPrefix").text = i.prefix;
                     animationWindow.findComponent("assetPath").text = i.assetPath;
                     animationWindow.findComponent("animIndices").text = (i.frameIndices ?? []).join(", ");
-                    animationWindow.findComponent("animOffsetX").pos = i.offsets[0];
-                    animationWindow.findComponent("animOffsetY").pos = i.offsets[1];
+                    animationWindow.findComponent("animOffsetX").pos = -i.offsets[0];
+                    animationWindow.findComponent("animOffsetY").pos = -i.offsets[1];
                     animationWindow.findComponent("animFlipX").selected = i.flipX;
                     animationWindow.findComponent("animIsPixel").selected = i.isPixel;
                     animationWindow.findComponent("animIsLooped").selected = i.looped;
@@ -741,7 +784,6 @@ class CharacterEditorV3 extends MusicBeatState {
         for (i in CharacterDataParser.characterCache.keys()) {
             if (!blackList.contains(i)) {
                 editCharacterWindow.findComponent("characterDropdown").dataSource.add({ text: CharacterDataParser.characterCache.get(i).name, id: i, protected: false });
-
                 customCharacterRegistry.set(i, CharacterDataParser.fetchCharacter(i)._data);
             }
         }
@@ -798,11 +840,22 @@ class CharacterEditorV3 extends MusicBeatState {
             onionSkin.animation.finish();
             crosshair.x = selectedCharacter.x + (selectedCharacter.width/2) - (crosshair.width/2) + selectedCharacter._data.cameraOffsets[0];
             crosshair.y = selectedCharacter.y + (selectedCharacter.height/2) - (crosshair.height/2) + selectedCharacter._data.cameraOffsets[1];
+            crosshair.visible = camHUD.visible;
         }
 
         if (editCharacterWindow != null) {
 
             animationWindow.disabled = editCharacterWindow.findComponent("charAnimationList").selectedItem == null;
+            if (cancelInput) {
+                animationWindow.disabled = true;
+            }
+            editCharacterWindow.disabled = cancelInput;
+            iconWindow.disabled = cancelInput;
+            menuBar.disabled = cancelInput;
+            bottomBar.disabled = cancelInput;
+            iconPreview.alpha = cancelInput ? 0.5 : 1;
+            iconPreviewLosing.alpha = cancelInput ? 0.5 : 1;
+            
             if (editCharacterWindow.findComponent("charAnimationList").selectedItem == null) {
                 animationWindow.findComponent("animName").text = null;
                 animationWindow.findComponent("animPrefix").text = null;
@@ -828,8 +881,8 @@ class CharacterEditorV3 extends MusicBeatState {
 
         if (bottomBar != null) {
             if (selectedAnim != null) {
-                bottomBar.findComponent("xPos").text = selectedAnim.offsets != null ? selectedAnim.offsets[0] : "NULL";
-                bottomBar.findComponent("yPos").text = selectedAnim.offsets != null ? selectedAnim.offsets[1] : "NULL";
+                bottomBar.findComponent("xPos").text = selectedAnim.offsets != null ? -selectedAnim.offsets[0] : "NULL";
+                bottomBar.findComponent("yPos").text = selectedAnim.offsets != null ? -selectedAnim.offsets[1] : "NULL";
             } else {
                 bottomBar.findComponent("xPos").text = "NULL";
                 bottomBar.findComponent("yPos").text = "NULL";
@@ -882,6 +935,20 @@ class CharacterEditorV3 extends MusicBeatState {
         iconPreviewLosing.y += selectedCharacter._data.healthIcon.offsets[1];
 
         camGame.zoom = camGame.zoom < 0.05 ? 0.05 : camGame.zoom;
+
+        if (FlxG.keys.justPressed.LEFT) {
+            animationWindow.findComponent("animOffsetX").pos -= FlxG.keys.pressed.SHIFT ? 10 : (FlxG.keys.pressed.CONTROL ? 1 : 5);
+            editCharacterWindow.findComponent("charAnimationList").selected = false;
+        }
+        if (FlxG.keys.justPressed.RIGHT) {
+            animationWindow.findComponent("animOffsetX").pos += FlxG.keys.pressed.SHIFT ? 10 : (FlxG.keys.pressed.CONTROL ? 1 : 5);
+        }
+        if (FlxG.keys.justPressed.UP) {
+            animationWindow.findComponent("animOffsetY").pos -= FlxG.keys.pressed.SHIFT ? 10 : (FlxG.keys.pressed.CONTROL ? 1 : 5);
+        }
+        if (FlxG.keys.justPressed.DOWN) {
+            animationWindow.findComponent("animOffsetY").pos += FlxG.keys.pressed.SHIFT ? 10 : (FlxG.keys.pressed.CONTROL ? 1 : 5);
+        }
     }
 
     function newKeybind(keys:Array<String>, action, ?type) {
@@ -907,6 +974,11 @@ class CharacterEditorV3 extends MusicBeatState {
     }
 
     function checkImageExists(id:String) {
+        if (id == "icons/icon-bf-pixel" || id == "icons/icon-pico-pixel" || id == "icons/icon-senpai" || id == "icons/icon-spirit") {
+            newNotification("Error!", "This icon is blacklisted, cuz v-slice is stinky af ngl.", NotificationType.Error, 5000);
+            return false;
+        }
+
         var fileExists = false;
         var foldersToCheck = [
             "assets/"
