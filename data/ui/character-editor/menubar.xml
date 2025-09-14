@@ -51,8 +51,8 @@
     </menu>
 
     <menu text="Converters" width="300">
-        <menu-item text="Codename Engine to V-Slice" shortcutText="(Coming Soon)" disabled="false" id="fromCNE"/>
-        <menu-item text="Psych Engine to V-Slice" shortcutText="(Coming Soon)" disabled="false" id="fromPsych"/>
+        <menu-item text="Codename Engine to V-Slice" disabled="false" id="fromCNE"/>
+        <menu-item text="Psych Engine to V-Slice" disabled="false" id="fromPsych"/>
         <menu-separator disabled="true"/>
         <menu-item text="V-Slice to Codename Engine" shortcutText="(Coming Soon)" disabled="true"/>
         <menu-item text="V-Slice to Psych Engine" shortcutText="(Coming Soon)" disabled="true"/>
