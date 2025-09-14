@@ -151,7 +151,7 @@ class CharacterEditorV3 extends MusicBeatState {
         for (i in PolymodHandler.getAllMods()) {
             if (i.title == editorTitle) {
                 editorFolder = i.id;
-                editorVersion = i.modVersion.version.join(".") + "-beta";
+                editorVersion = i.modVersion.version.join(".");
             } 
         }
 
