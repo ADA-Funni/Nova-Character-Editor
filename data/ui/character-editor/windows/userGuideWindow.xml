@@ -53,6 +53,7 @@
                     <item action="Toggle HUD Visibilty" keybind="Ctrl + E" />
 
                     <item action="Move Camera" keybind="W, A, S, D" />
+                    <item action="Move Animation Offsets" keybind="Arrow Keys" />
                     <item action="Zoom Camera" keybind="Q, E" />
 
                     <item action="Play Sing Animation" keybind="I, J, K, L" />
