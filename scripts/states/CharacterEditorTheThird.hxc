@@ -214,7 +214,7 @@ class CharacterEditorV3 extends MusicBeatState {
 
                     var continueButton = convertedCharacterDialog.findComponent("dialogContinue");
                     continueButton.onClick = ()->{
-                        var continu = true;
+                        var continu = true; // To-Do: Make this a return statement, idk what I was smoking when coding this.
                         if (convertedCharacterDialog.findComponent("modFolderList").text == "None") {
                             newNotification("Error!", 'Could not create character!\nPlease select a mod folder first.', NotificationType.Error, 5000);
                             continu = false;
@@ -635,6 +635,12 @@ class CharacterEditorV3 extends MusicBeatState {
             reloadCharacter();
         }
 
+        animationWindow.findComponent("frameRate").onChange = ()->{
+            if (selectedAnim == null) return;
+            selectedAnim.frameRate = animationWindow.findComponent("frameRate").pos;
+            reloadCharacter();
+        }
+
         animationWindow.findComponent("animFlipX").onChange = ()->{
             if (selectedAnim == null) return;
             selectedAnim.flipX = animationWindow.findComponent("animFlipX").selected;
@@ -832,6 +838,7 @@ class CharacterEditorV3 extends MusicBeatState {
                     animationWindow.findComponent("animIndices").text = (i.frameIndices ?? []).join(", ");
                     animationWindow.findComponent("animOffsetX").pos = -i.offsets[0];
                     animationWindow.findComponent("animOffsetY").pos = -i.offsets[1];
+                    animationWindow.findComponent("frameRate").pos = i.frameRate;
                     animationWindow.findComponent("animFlipX").selected = i.flipX;
                     animationWindow.findComponent("animIsPixel").selected = i.isPixel;
                     animationWindow.findComponent("animIsLooped").selected = i.looped;
@@ -848,29 +855,29 @@ class CharacterEditorV3 extends MusicBeatState {
         newKeybind(["I"], (elapsed) -> {
             if (FlxG.keys.pressed.CONTROL || cancelInput) return;
             selectedCharacter.playAnimation("singUP", true);
-            animationList.selectedItem = null;
-            animationList.selectedItems = [];
+            /* animationList.selectedItem = null;
+            animationList.selectedItems = []; */
         });
 
         newKeybind(["J"], (elapsed) -> {
             if (FlxG.keys.pressed.CONTROL || cancelInput) return;
             selectedCharacter.playAnimation("singLEFT", true);
-            animationList.selectedItem = null;
-            animationList.selectedItems = [];
+            /* animationList.selectedItem = null;
+            animationList.selectedItems = []; */
         });
         
         newKeybind(["K"], (elapsed) -> {
             if (FlxG.keys.pressed.CONTROL || cancelInput) return;
             selectedCharacter.playAnimation("singDOWN", true);
-            animationList.selectedItem = null;
-            animationList.selectedItems = [];
+            /* animationList.selectedItem = null;
+            animationList.selectedItems = []; */
         });
         
         newKeybind(["L"], (elapsed) -> {
             if (FlxG.keys.pressed.CONTROL || cancelInput) return;
             selectedCharacter.playAnimation("singRIGHT", true);
-            animationList.selectedItem = null;
-            animationList.selectedItems = [];
+            /* animationList.selectedItem = null;
+            animationList.selectedItems = []; */
         });
         
 

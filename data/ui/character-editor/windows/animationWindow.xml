@@ -18,6 +18,9 @@
             <number-stepper id="animOffsetY" step="1" width="100%" verticalAlign="center" tooltip="The Animations Y Offset."/>
         </hbox>
         
+        <label text="Frame Rate:" style="padding: 2px;" verticalAlign="center" />
+        <number-stepper id="frameRate" step="1" width="100%" verticalAlign="center" tooltip="The Animations Frame Rate."/>
+        
     </grid>
     
     <hbox width="100%" style="padding: 10px;">

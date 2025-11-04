@@ -17,7 +17,7 @@
             <data>
                 <item text="Sparrow" data="sparrow" />
                 <item text="Multi-Sparrow" data="multisparrow" />
-                <item text="Texture Atlas" data="textureatlas" />
+                <item text="Texture Atlas" data="animateatlas" />
                 <!-- <item text="Packer" data="packer" /> -->
             </data>
         </dropdown>
